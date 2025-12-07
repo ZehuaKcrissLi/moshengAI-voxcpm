@@ -1,0 +1,39 @@
+FROM python:3.10-slim
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    libsndfile1 \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install uv
+RUN pip install uv
+
+# Copy project files
+COPY pyproject.toml .
+COPY uv.lock .
+
+# Sync dependencies
+RUN uv sync --frozen
+
+# Copy source code
+COPY backend ./backend
+COPY index-tts ./index-tts
+COPY prompt_voice ./prompt_voice
+# Note: prompt_voice should ideally be a volume, but copying for self-contained build
+
+# Create storage directory
+RUN mkdir -p storage/generated
+
+# Set environment variables
+ENV PYTHONPATH=/app
+ENV HF_HUB_CACHE=/app/storage/hf_cache
+
+# Expose port
+EXPOSE 8000
+
+# Run command
+CMD ["uv", "run", "uvicorn", "backend.app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+

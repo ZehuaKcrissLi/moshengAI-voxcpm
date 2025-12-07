@@ -1,0 +1,44 @@
+[project]
+name = "mosheng-ai"
+version = "0.1.0"
+description = "Mosheng AI - Professional AI Voice Synthesis Service"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi>=0.109.0",
+    "uvicorn[standard]>=0.27.0",
+    "pydantic>=2.6.0",
+    "pydantic-settings>=2.1.0",
+    "sqlalchemy>=2.0.25",
+    "asyncpg>=0.29.0",
+    "alembic>=1.13.1",
+    "python-jose[cryptography]>=3.3.0",
+    "passlib[bcrypt]>=1.7.4",
+    "python-multipart>=0.0.7",
+    "aiofiles>=23.2.1",
+    "torch>=2.1.0",
+    "torchaudio>=2.1.0",
+    "numpy>=1.26.0",
+    "librosa>=0.10.1",
+    "omegaconf>=2.3.0",
+    "modelscope>=1.11.0",
+    "huggingface_hub>=0.20.0",
+    "safetensors>=0.4.2",
+    "soundfile>=0.12.1",
+    "scipy>=1.12.0",
+    "vector-quantize-pytorch>=1.12.1",
+    "json5>=0.12.1",
+    "sentencepiece>=0.2.1",
+    "protobuf>=6.33.2",
+    "munch>=4.0.0",
+    "matplotlib>=3.10.7",
+    "tqdm>=4.67.1",
+    "transformers==4.40.0",
+]
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=8.0.0",
+    "httpx>=0.26.0",
+]
+

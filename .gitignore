@@ -1,1 +1,66 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+ENV/
+env/
+
+# Node.js / Next.js
+node_modules/
+.next/
+out/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Audio files
 *.wav
+*.mp3
+*.flac
+*.ogg
+
+# Model checkpoints (large files)
+checkpoints/*.pth
+checkpoints/*.pt
+checkpoints/*.safetensors
+checkpoints/hf_cache/
+
+# Storage
+storage/generated/*.wav
+prompt_voice/*.wav
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Database
+*.db
+*.sqlite
+
+# Temporary files
+*.tmp
+*.bak
+.cache/
