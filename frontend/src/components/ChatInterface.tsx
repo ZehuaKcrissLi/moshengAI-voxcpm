@@ -1,17 +1,22 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, Loader2, Sparkles, User, Copy, Download } from 'lucide-react';
+import { Send, Loader2, Sparkles, User, Copy, Download, Mic } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { generateAudio, getTaskStatus } from '@/lib/api';
 import { AudioPlayer } from './AudioPlayer';
+import { VoiceSelector } from './VoiceSelector';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 
-export function ChatInterface() {
+interface ChatInterfaceProps {
+  onOpenVoiceDrawer: () => void;
+}
+
+export function ChatInterface({ onOpenVoiceDrawer }: ChatInterfaceProps) {
   const { selectedVoice, deductCredits, credits } = useAppStore();
   const [text, setText] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [messages, setMessages] = useState<Array<{type: 'user'|'ai', content: string, audio?: string}>>([]);
+  const [messages, setMessages] = useState<Array<{type: 'user'|'ai', content: string, audio?: string, voiceName?: string}>>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -51,7 +56,8 @@ export function ChatInterface() {
             setMessages(prev => [...prev, { 
               type: 'ai', 
               content: '', 
-              audio: fullUrl 
+              audio: fullUrl,
+              voiceName: selectedVoice.name
             }]);
             deductCredits(currentText.length);
           } else if (status.status === 'failed') {
@@ -122,7 +128,15 @@ export function ChatInterface() {
                   </div>
                 ) : (
                   <div className="w-full">
-                    {msg.audio && <AudioPlayer src={msg.audio} autoPlay={true} />}
+                    {msg.audio && (
+                      <>
+                        <div className="flex items-center gap-2 mb-2 text-xs text-muted-foreground">
+                          <Mic className="w-3 h-3" />
+                          <span>Voice: {msg.voiceName || 'Unknown'}</span>
+                        </div>
+                        <AudioPlayer src={msg.audio} autoPlay={true} />
+                      </>
+                    )}
                     <div className="flex items-center gap-2 mt-2 ml-2">
                        <button className="p-1.5 hover:bg-secondary rounded-lg text-muted-foreground hover:text-foreground transition-colors">
                          <Copy className="w-4 h-4" />
@@ -160,11 +174,14 @@ export function ChatInterface() {
       {/* Input Area */}
       <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 bg-gradient-to-t from-background via-background to-transparent z-20">
         <div className="relative bg-secondary/50 backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl focus-within:border-blue-500/50 focus-within:ring-1 focus-within:ring-blue-500/50 transition-all duration-300">
+          {/* Voice Selector Ball - Inside Input */}
+          <VoiceSelector onClick={onOpenVoiceDrawer} />
+          
           <textarea
             value={text}
             onChange={(e) => setText(e.target.value)}
-            placeholder="Type your text here..."
-            className="w-full bg-transparent text-foreground p-4 sm:p-5 pr-16 max-h-40 min-h-[60px] resize-none focus:outline-none scrollbar-hide text-base sm:text-lg placeholder:text-muted-foreground/50"
+            placeholder={selectedVoice ? `Type your text here...` : "Select a voice first..."}
+            className="w-full bg-transparent text-foreground p-4 sm:p-5 pl-16 pr-16 max-h-40 min-h-[60px] resize-none focus:outline-none scrollbar-hide text-base sm:text-lg placeholder:text-muted-foreground/50"
             disabled={isGenerating}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {

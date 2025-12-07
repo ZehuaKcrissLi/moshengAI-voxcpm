@@ -14,6 +14,7 @@ export default function Home() {
   const [isPricingOpen, setIsPricingOpen] = useState(false);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isVoiceDrawerOpen, setIsVoiceDrawerOpen] = useState(false);
 
   return (
     <main className="flex h-screen bg-background text-foreground overflow-hidden selection:bg-blue-500/30">
@@ -122,11 +123,14 @@ export default function Home() {
 
         {/* Chat Area */}
         <div className="flex-1 relative">
-          <ChatInterface />
+          <ChatInterface onOpenVoiceDrawer={() => setIsVoiceDrawerOpen(true)} />
         </div>
 
-        {/* Voice Selection Drawer */}
-        <VoiceDrawer />
+        {/* Voice Selection Drawer - No default trigger, controlled by state */}
+        <VoiceDrawer 
+          isOpen={isVoiceDrawerOpen}
+          onOpenChange={setIsVoiceDrawerOpen}
+        />
       </div>
 
       {/* Modals */}

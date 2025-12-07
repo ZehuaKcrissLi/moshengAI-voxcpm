@@ -5,13 +5,29 @@ import { Play, Pause, Search, Mic, X, Volume2, Sparkles, Filter } from 'lucide-r
 import { motion, AnimatePresence } from 'framer-motion';
 import { Voice } from '@/lib/api';
 
-export function VoiceDrawer() {
+interface VoiceDrawerProps {
+  trigger?: React.ReactNode;
+  isOpen?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}
+
+export function VoiceDrawer({ trigger, isOpen: controlledIsOpen, onOpenChange }: VoiceDrawerProps) {
   const { voices, selectedVoice, loadVoices, selectVoice, isLoadingVoices } = useAppStore();
-  const [isOpen, setIsOpen] = useState(false);
+  const [internalIsOpen, setInternalIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeCategory, setActiveCategory] = useState<'all' | 'male' | 'female'>('all');
   const [playingVoiceId, setPlayingVoiceId] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Use controlled state if provided, otherwise use internal state
+  const isOpen = controlledIsOpen !== undefined ? controlledIsOpen : internalIsOpen;
+  const setIsOpen = (open: boolean) => {
+    if (onOpenChange) {
+      onOpenChange(open);
+    } else {
+      setInternalIsOpen(open);
+    }
+  };
 
   useEffect(() => {
     loadVoices();
@@ -46,30 +62,17 @@ export function VoiceDrawer() {
 
   return (
     <>
-      {/* Floating Trigger Bar */}
-      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-10">
-        <motion.button
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          onClick={() => setIsOpen(true)}
-          className="flex items-center gap-3 px-5 py-3 bg-secondary/80 backdrop-blur-md border border-white/10 rounded-full shadow-2xl hover:bg-secondary transition-colors text-sm font-medium"
-        >
-          <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
-             <Mic className="w-4 h-4" />
-          </div>
-          <div className="flex flex-col items-start text-left min-w-[120px]">
-            <span className="text-xs text-muted-foreground">Current Voice</span>
-            <span className="text-foreground">{selectedVoice?.name || 'Select Voice'}</span>
-          </div>
-          <div className="w-px h-8 bg-white/10 mx-2" />
-          <span className="text-xs text-blue-400 font-semibold">CHANGE</span>
-        </motion.button>
-      </div>
+      {/* Only show trigger if explicitly provided */}
+      {trigger && (
+        <div onClick={() => setIsOpen(true)}>
+          {trigger}
+        </div>
+      )}
 
       {/* Drawer Overlay */}
       <AnimatePresence>
         {isOpen && (
-          <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -79,11 +82,11 @@ export function VoiceDrawer() {
             />
             
             <motion.div 
-              initial={{ y: "100%" }}
-              animate={{ y: 0 }}
-              exit={{ y: "100%" }}
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="relative w-full max-w-4xl h-[85vh] bg-[#09090b] border border-white/10 rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden"
+              className="relative w-full max-w-5xl max-h-[80vh] bg-[#09090b] border border-white/10 rounded-2xl shadow-2xl flex flex-col overflow-hidden"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Header */}
@@ -145,10 +148,13 @@ export function VoiceDrawer() {
                 ) : filteredVoices.map((voice) => (
                   <motion.div 
                     key={voice.id}
+                    layout
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     className={cn(
-                      "group relative p-4 rounded-2xl border transition-all cursor-pointer overflow-hidden",
+                      "group relative rounded-2xl border transition-all cursor-pointer overflow-hidden min-h-[140px]",
                       selectedVoice?.id === voice.id 
                         ? "bg-blue-500/10 border-blue-500/50 shadow-[0_0_20px_rgba(59,130,246,0.15)]" 
                         : "bg-secondary/40 border-white/5 hover:bg-secondary/60 hover:border-white/10"
@@ -158,53 +164,66 @@ export function VoiceDrawer() {
                       setIsOpen(false);
                     }}
                   >
-                    {/* Background Wave Animation (Mock) */}
-                    <div className="absolute bottom-0 left-0 right-0 h-12 opacity-10 pointer-events-none flex items-end justify-between px-4 pb-2 gap-1">
-                      {[...Array(10)].map((_, i) => (
-                        <div key={i} className="w-1 bg-current h-4 rounded-full" style={{ height: `${Math.random() * 100}%` }} />
-                      ))}
-                    </div>
-
-                    <div className="flex items-start justify-between relative z-10">
-                      <div className="flex items-center gap-3">
-                         <div className={cn(
-                           "w-10 h-10 rounded-full flex items-center justify-center text-base font-bold shadow-inner",
-                           voice.category === 'female' 
-                             ? "bg-gradient-to-br from-pink-500 to-rose-600 text-white" 
-                             : "bg-gradient-to-br from-blue-500 to-cyan-600 text-white"
-                         )}>
-                           {voice.name[0]}
-                         </div>
-                         <div>
-                           <h3 className="font-semibold text-foreground">{voice.name}</h3>
-                           <span className="text-xs text-muted-foreground capitalize inline-flex items-center gap-1">
-                             {voice.category} • Pro
-                           </span>
-                         </div>
+                    {/* Content Section */}
+                    <div className="p-4 h-full flex flex-col min-h-[140px]">
+                      {/* Header - Icon, Name, Play Button */}
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className={cn(
+                          "w-10 h-10 rounded-full flex items-center justify-center text-base font-bold shadow-inner flex-shrink-0",
+                          voice.category === 'female' 
+                            ? "bg-gradient-to-br from-pink-500 to-rose-600 text-white" 
+                            : "bg-gradient-to-br from-blue-500 to-cyan-600 text-white"
+                        )}>
+                          {voice.name[0]}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold text-foreground text-sm truncate">{voice.name}</h3>
+                          <span className="text-xs text-muted-foreground capitalize">
+                            {voice.category} • Pro
+                          </span>
+                        </div>
+                        <button 
+                          onClick={(e) => handlePlayPreview(e, voice)}
+                          className={cn(
+                            "w-9 h-9 rounded-full flex items-center justify-center transition-all flex-shrink-0",
+                            playingVoiceId === voice.id 
+                              ? "bg-white text-black shadow-lg" 
+                              : "bg-white/10 text-white hover:bg-white hover:text-black"
+                          )}
+                        >
+                          {playingVoiceId === voice.id ? (
+                            <Pause className="w-4 h-4 fill-current" />
+                          ) : (
+                            <Play className="w-4 h-4 fill-current ml-0.5" />
+                          )}
+                        </button>
                       </div>
                       
-                      <button 
-                        onClick={(e) => handlePlayPreview(e, voice)}
-                        className={cn(
-                          "w-9 h-9 rounded-full flex items-center justify-center transition-all",
-                          playingVoiceId === voice.id 
-                            ? "bg-white text-black" 
-                            : "bg-white/10 text-white hover:bg-white hover:text-black"
-                        )}
-                      >
-                        {playingVoiceId === voice.id ? (
-                          <Pause className="w-4 h-4 fill-current" />
-                        ) : (
-                          <Play className="w-4 h-4 fill-current" />
-                        )}
-                      </button>
+                      {/* Transcript */}
+                      {voice.transcript && (
+                        <p className="text-xs text-muted-foreground line-clamp-2 font-light italic leading-relaxed mb-3">
+                          "{voice.transcript}"
+                        </p>
+                      )}
+                      
+                      {/* Audio Wave Visualization - Bottom */}
+                      <div className="mt-auto flex items-end justify-between gap-0.5 h-6 opacity-20">
+                        {[...Array(16)].map((_, i) => (
+                          <div 
+                            key={i} 
+                            className={cn(
+                              "w-full rounded-full transition-all",
+                              voice.category === 'female' ? "bg-pink-500" : "bg-blue-500",
+                              playingVoiceId === voice.id && "animate-pulse"
+                            )} 
+                            style={{ 
+                              height: `${30 + Math.sin(i * 0.5) * 50}%`,
+                              animationDelay: `${i * 50}ms`
+                            }} 
+                          />
+                        ))}
+                      </div>
                     </div>
-                    
-                    {voice.transcript && (
-                      <p className="mt-4 text-xs text-muted-foreground line-clamp-2 relative z-10 font-light italic">
-                        "{voice.transcript}"
-                      </p>
-                    )}
                   </motion.div>
                 ))}
               </div>
