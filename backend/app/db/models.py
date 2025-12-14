@@ -12,11 +12,12 @@ class User(Base):
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     email = Column(String, unique=True, index=True, nullable=False)
     hashed_password = Column(String, nullable=True) # Nullable for OAuth
-    provider = Column(String, default="local") # local, google, wechat
+    provider = Column(String, default="local") # local, google, github, wechat
+    provider_user_id = Column(String, nullable=True) # OAuth provider user ID
     avatar = Column(String, nullable=True)
     credits_balance = Column(Integer, default=100) # Free credits on signup
     is_admin = Column(Boolean, default=False)
-    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
 
     tasks = relationship("Task", back_populates="user")
 
@@ -28,9 +29,10 @@ class Task(Base):
     text = Column(String, nullable=False)
     voice_path = Column(String, nullable=False)
     status = Column(String, default="PENDING") # PENDING, PROCESSING, COMPLETED, FAILED
+    cost = Column(Integer, default=0) # Credits consumed
     output_url = Column(String, nullable=True)
     error_message = Column(String, nullable=True)
-    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
     completed_at = Column(DateTime, nullable=True)
 
     user = relationship("User", back_populates="tasks")

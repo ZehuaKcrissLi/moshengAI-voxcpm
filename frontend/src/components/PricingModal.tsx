@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, CreditCard, Check, Zap } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { cn } from '@/lib/utils';
+import { getCreditsBalance } from '@/lib/api';
 
 interface PricingModalProps {
   isOpen: boolean;
@@ -37,7 +38,7 @@ const PLANS = [
 ];
 
 export function PricingModal({ isOpen, onClose }: PricingModalProps) {
-  const { addCredits } = useAppStore(); // We need to implement addCredits in store
+  const { setCredits, refreshUser } = useAppStore();
 
   return (
     <AnimatePresence>
@@ -110,9 +111,16 @@ export function PricingModal({ isOpen, onClose }: PricingModalProps) {
                     </ul>
 
                     <button 
-                      onClick={() => {
-                        // Mock payment
-                        addCredits(plan.credits);
+                      onClick={async () => {
+                        // For MVP: Just show a message that payment integration is coming
+                        // In production, this would integrate with payment gateway
+                        alert(`Payment integration coming soon! This would add ${plan.credits.toLocaleString()} credits to your account.`);
+                        // Refresh credits to show current balance
+                        try {
+                          await refreshUser();
+                        } catch (err) {
+                          console.error('Failed to refresh user:', err);
+                        }
                         onClose();
                       }}
                       className={cn(

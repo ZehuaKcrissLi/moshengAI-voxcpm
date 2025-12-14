@@ -50,8 +50,8 @@ export function VoiceDrawer({ trigger, isOpen: controlledIsOpen, onOpenChange }:
       if (audioRef.current) {
         audioRef.current.pause();
       }
-      // Use window.location.hostname to automatically match the current host
-      const url = `http://${window.location.hostname}:8000${voice.preview_url}`;
+      // Use relative path, Next.js will proxy to backend
+      const url = `/api${voice.preview_url}`;
       const audio = new Audio(url);
       audio.onended = () => setPlayingVoiceId(null);
       audio.play();
@@ -66,7 +66,7 @@ export function VoiceDrawer({ trigger, isOpen: controlledIsOpen, onOpenChange }:
       {trigger && (
         <div onClick={() => setIsOpen(true)}>
           {trigger}
-        </div>
+          </div>
       )}
 
       {/* Drawer Overlay */}
@@ -168,43 +168,43 @@ export function VoiceDrawer({ trigger, isOpen: controlledIsOpen, onOpenChange }:
                     <div className="p-4 h-full flex flex-col min-h-[140px]">
                       {/* Header - Icon, Name, Play Button */}
                       <div className="flex items-center gap-3 mb-3">
-                        <div className={cn(
+                         <div className={cn(
                           "w-10 h-10 rounded-full flex items-center justify-center text-base font-bold shadow-inner flex-shrink-0",
-                          voice.category === 'female' 
-                            ? "bg-gradient-to-br from-pink-500 to-rose-600 text-white" 
-                            : "bg-gradient-to-br from-blue-500 to-cyan-600 text-white"
-                        )}>
-                          {voice.name[0]}
-                        </div>
+                           voice.category === 'female' 
+                             ? "bg-gradient-to-br from-pink-500 to-rose-600 text-white" 
+                             : "bg-gradient-to-br from-blue-500 to-cyan-600 text-white"
+                         )}>
+                           {voice.name[0]}
+                         </div>
                         <div className="flex-1 min-w-0">
                           <h3 className="font-semibold text-foreground text-sm truncate">{voice.name}</h3>
                           <span className="text-xs text-muted-foreground capitalize">
-                            {voice.category} • Pro
-                          </span>
-                        </div>
-                        <button 
-                          onClick={(e) => handlePlayPreview(e, voice)}
-                          className={cn(
+                             {voice.category} • Pro
+                           </span>
+                         </div>
+                      <button 
+                        onClick={(e) => handlePlayPreview(e, voice)}
+                        className={cn(
                             "w-9 h-9 rounded-full flex items-center justify-center transition-all flex-shrink-0",
-                            playingVoiceId === voice.id 
+                          playingVoiceId === voice.id 
                               ? "bg-white text-black shadow-lg" 
-                              : "bg-white/10 text-white hover:bg-white hover:text-black"
-                          )}
-                        >
-                          {playingVoiceId === voice.id ? (
-                            <Pause className="w-4 h-4 fill-current" />
-                          ) : (
+                            : "bg-white/10 text-white hover:bg-white hover:text-black"
+                        )}
+                      >
+                        {playingVoiceId === voice.id ? (
+                          <Pause className="w-4 h-4 fill-current" />
+                        ) : (
                             <Play className="w-4 h-4 fill-current ml-0.5" />
-                          )}
-                        </button>
-                      </div>
-                      
+                        )}
+                      </button>
+                    </div>
+                    
                       {/* Transcript */}
-                      {voice.transcript && (
+                    {voice.transcript && (
                         <p className="text-xs text-muted-foreground line-clamp-2 font-light italic leading-relaxed mb-3">
-                          "{voice.transcript}"
-                        </p>
-                      )}
+                        "{voice.transcript}"
+                      </p>
+                    )}
                       
                       {/* Audio Wave Visualization - Bottom */}
                       <div className="mt-auto flex items-end justify-between gap-0.5 h-6 opacity-20">

@@ -1,5 +1,6 @@
 import os
 from pydantic_settings import BaseSettings
+from typing import List
 
 class Settings(BaseSettings):
     PROJECT_NAME: str = "Mosheng AI"
@@ -19,12 +20,28 @@ class Settings(BaseSettings):
     TTS_MODEL_DIR: str = os.path.join(INDEX_TTS_ROOT, "checkpoints")
     
     # Database
-    DATABASE_URL: str = "sqlite+aiosqlite:///./mosheng.db" # Use SQLite for MVP, switch to Postgres later
+    DATABASE_URL: str = "sqlite+aiosqlite:///./mosheng.db"
     
     # Security
     SECRET_KEY: str = "CHANGE_ME_IN_PRODUCTION"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    
+    # CORS
+    ALLOWED_ORIGINS: str = "http://localhost:38000,http://10.212.227.125:38000"
+    
+    # Credits
+    TTS_COST_PER_CHAR: int = 1
+    NEW_USER_CREDITS: int = 100
+    MIN_CREDITS_REQUIRED: int = 1
+    
+    # OAuth (Placeholders for future implementation)
+    GOOGLE_CLIENT_ID: str = ""
+    GOOGLE_CLIENT_SECRET: str = ""
+    GITHUB_CLIENT_ID: str = ""
+    GITHUB_CLIENT_SECRET: str = ""
+    WECHAT_APP_ID: str = ""
+    WECHAT_APP_SECRET: str = ""
 
     class Config:
         env_file = ".env"

@@ -5,7 +5,7 @@ from pydantic import BaseModel
 from typing import List
 from backend.app.core.config import settings
 
-router = APIRouter()
+router = APIRouter(redirect_slashes=False)
 
 class Voice(BaseModel):
     id: str
@@ -14,6 +14,7 @@ class Voice(BaseModel):
     preview_url: str
     transcript: str = ""
 
+@router.get("", response_model=List[Voice])
 @router.get("/", response_model=List[Voice])
 async def get_voices():
     """

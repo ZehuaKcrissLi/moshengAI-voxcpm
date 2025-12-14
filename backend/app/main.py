@@ -7,22 +7,35 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from backend.app.core.config import settings
-from backend.app.core.tts_wrapper import tts_engine
-from backend.app.routers import tts, voice
+# from backend.app.core.tts_wrapper import tts_engine  # IndexTTS - 兼容性问题
+from backend.app.core.tts_wrapper_voxcpm import voxcpm_engine as tts_engine  # VoxCPM - 新的TTS引擎
+from backend.app.db.init_db import init_db
+from backend.app.routers import tts, voice, auth, credits
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
     print("Starting up...")
     
+    # Initialize Database
+    try:
+        await init_db()
+        print("Database initialized successfully.")
+    except Exception as e:
+        print(f"Failed to initialize database: {e}")
+    
     # Initialize TTS Engine
     try:
+        print("Attempting to initialize TTS Engine...")
         tts_engine.initialize()
+        print("TTS Engine initialized, starting queue processor...")
         # Start the queue processor
         asyncio.create_task(tts_engine.process_queue())
+        print("Queue processor started")
     except Exception as e:
         print(f"Failed to initialize TTS Engine: {e}")
-        # We might want to exit or continue with error
+        import traceback
+        traceback.print_exc()
     
     yield
     
@@ -32,16 +45,19 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title=settings.PROJECT_NAME,
     openapi_url=f"{settings.API_V1_STR}/openapi.json",
-    lifespan=lifespan
+    lifespan=lifespan,
+    redirect_slashes=False
 )
 
 # CORS
+allowed_origins = settings.ALLOWED_ORIGINS.split(",")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # In production, specify frontend URL
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 # Mount Static Files
@@ -51,9 +67,18 @@ app.mount("/static/generated", StaticFiles(directory=settings.GENERATED_AUDIO_DI
 app.mount("/static/voices", StaticFiles(directory=settings.VOICE_ASSETS_DIR), name="voices")
 
 # Routers
+app.include_router(auth.router, prefix="/auth", tags=["auth"])
+app.include_router(credits.router, prefix="/credits", tags=["credits"])
 app.include_router(tts.router, prefix="/tts", tags=["tts"])
 app.include_router(voice.router, prefix="/voices", tags=["voices"])
-# app.include_router(auth.router, prefix="/auth", tags=["auth"]) # Later
+
+# Monitor router - try to load, skip if dependencies missing
+try:
+    from backend.app.routers import monitor
+    app.include_router(monitor.router, prefix="/monitor", tags=["monitor"])
+    print("✅ Monitor router loaded")
+except Exception as e:
+    print(f"⚠️  Monitor router not loaded: {e}")
 
 @app.get("/health")
 def health_check():
