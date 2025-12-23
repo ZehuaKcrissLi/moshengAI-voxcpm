@@ -5,7 +5,7 @@ from backend.app.core.security import get_password_hash, verify_password, create
 from backend.app.core.deps import get_current_active_user
 from backend.app.db.database import get_db
 from backend.app.db.crud_user import create_user, get_user_by_email
-from backend.app.db.models import User
+from backend.app.db.models import User, CreditTransaction
 from backend.app.schemas.user import RegisterRequest, UserResponse, Token, OAuthCallbackRequest
 from backend.app.core.config import settings
 from datetime import timedelta
@@ -37,6 +37,16 @@ async def register(
         provider="local",
         initial_credits=settings.NEW_USER_CREDITS
     )
+
+    # Record signup bonus in credits ledger (balance already set on user row)
+    tx = CreditTransaction(
+        user_id=user.id,
+        amount=settings.NEW_USER_CREDITS,
+        kind="TOPUP",
+        reason="Signup bonus",
+    )
+    db.add(tx)
+    await db.commit()
     
     return user
 

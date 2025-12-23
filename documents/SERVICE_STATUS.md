@@ -3,7 +3,7 @@
 ## 系统状态 ✅ 完全运行中 - Bug已全部修复
 
 ### 后端服务 (TTS推理引擎)
-**地址:** `http://localhost:8000`
+**地址:** `http://localhost:38000`
 **状态:** 🟢 运行中 **（2025-12-07 修复完成）**
 **启动脚本:** `/scratch/kcriss/MoshengAI/start_backend.sh`
 
@@ -46,7 +46,7 @@ tail -f /tmp/tts_backend.log
 ```
 
 ### 前端服务 (WebApp)
-**地址:** `http://localhost:3000`
+**地址:** `http://localhost:33000`
 **状态:** 🟢 运行中
 **技术栈:** Next.js 16 + Tailwind CSS 4 + Framer Motion
 
@@ -81,7 +81,7 @@ nvidia-smi  # 查看GPU占用
 ## 使用方法
 
 ### 1. 访问Web界面
-打开浏览器访问: `http://localhost:3000`
+打开浏览器访问: `http://localhost:33000`
 
 ### 2. 操作流程
 1. 点击底部 "Change Voice" 按钮
@@ -94,17 +94,17 @@ nvidia-smi  # 查看GPU占用
 ### 3. API直接调用示例
 ```bash
 # 1. 获取音色列表
-curl http://localhost:8000/voices/
+curl http://localhost:38000/voices/
 
 # 2. 提交生成任务
-curl -X POST http://localhost:8000/tts/generate \
+curl -X POST http://localhost:38000/tts/generate \
   -H "Content-Type: application/json" \
   -d '{"text":"欢迎使用魔声AI", "voice_id":"female/女声1大气磁性.wav"}'
 
 # 返回: {"task_id":"xxx","status":"queued"}
 
 # 3. 轮询任务状态
-curl http://localhost:8000/tts/status/xxx
+curl http://localhost:38000/tts/status/xxx
 
 # 当status="completed"时，通过output_url下载音频
 ```
@@ -114,10 +114,10 @@ curl http://localhost:8000/tts/status/xxx
 ### 后端无法启动
 ```bash
 # 1. 检查端口占用
-lsof -i :8000
+lsof -i :38000
 
 # 2. 清理端口
-fuser -k 8000/tcp
+fuser -k 38000/tcp
 
 # 3. 重启
 /scratch/kcriss/MoshengAI/start_backend.sh
@@ -126,7 +126,7 @@ fuser -k 8000/tcp
 ### 前端无法访问
 ```bash
 # 检查端口
-lsof -i :3000
+lsof -i :33000
 
 # 重启前端
 cd /scratch/kcriss/MoshengAI/frontend && npm run dev
@@ -140,11 +140,11 @@ cd /scratch/kcriss/MoshengAI/frontend && npm run dev
 ## 技术架构总结
 
 ```
-用户浏览器 (localhost:3000)
+用户浏览器 (localhost:33000)
     ↓
 Next.js Frontend (Tailwind + Zustand)
     ↓ HTTP REST API
-FastAPI Backend (localhost:8000)
+FastAPI Backend (localhost:38000)
     ↓ asyncio.Queue
 TTS Worker (单GPU队列处理)
     ↓

@@ -11,8 +11,20 @@ async def create_task(
     user_id: str,
     text: str,
     voice_path: str,
-    cost: int = 0
+    cost: int = 0,
+    commit: bool = True
 ) -> Task:
+    """
+    Create a new TTS task record.
+
+    Parameters:
+    - db: AsyncSession
+    - user_id: owner user id
+    - text: TTS input text
+    - voice_path: absolute path to the selected voice wav
+    - cost: credits to consume for this task
+    - commit: when True, commit immediately; when False, only flush and let caller commit
+    """
     task = Task(
         id=str(uuid.uuid4()),
         user_id=user_id,
@@ -22,8 +34,11 @@ async def create_task(
         cost=cost,
     )
     db.add(task)
-    await db.commit()
-    await db.refresh(task)
+    if commit:
+        await db.commit()
+        await db.refresh(task)
+    else:
+        await db.flush()
     return task
 
 async def get_task(db: AsyncSession, task_id: str) -> Optional[Task]:
@@ -38,8 +53,8 @@ async def update_task_status(
     error_message: Optional[str] = None
 ) -> Optional[Task]:
     values = {"status": status}
-    if status == "COMPLETED":
-        values["completed_at"] = datetime.datetime.now(datetime.timezone.utc)
+    if status in {"COMPLETED", "FAILED"}:
+        values["completed_at"] = datetime.datetime.utcnow()
     if output_url:
         values["output_url"] = output_url
     if error_message:

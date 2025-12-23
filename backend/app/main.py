@@ -10,7 +10,7 @@ from backend.app.core.config import settings
 # from backend.app.core.tts_wrapper import tts_engine  # IndexTTS - 兼容性问题
 from backend.app.core.tts_wrapper_voxcpm import voxcpm_engine as tts_engine  # VoxCPM - 新的TTS引擎
 from backend.app.db.init_db import init_db
-from backend.app.routers import tts, voice, auth, credits
+from backend.app.routers import tts, voice, auth, credits, feedback
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -71,6 +71,7 @@ app.include_router(auth.router, prefix="/auth", tags=["auth"])
 app.include_router(credits.router, prefix="/credits", tags=["credits"])
 app.include_router(tts.router, prefix="/tts", tags=["tts"])
 app.include_router(voice.router, prefix="/voices", tags=["voices"])
+app.include_router(feedback.router, prefix="/feedback", tags=["feedback"])
 
 # Monitor router - try to load, skip if dependencies missing
 try:
@@ -90,4 +91,4 @@ def read_root():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("backend.app.main:app", host="0.0.0.0", port=8000, reload=False)
+    uvicorn.run("backend.app.main:app", host="0.0.0.0", port=38000, reload=False)

@@ -344,7 +344,7 @@ class TaskAdmin(ModelView, model=Task):
 admin.add_view(UserAdmin)
 admin.add_view(TaskAdmin)
 
-# 访问：http://localhost:8000/admin
+# 访问：http://localhost:38000/admin
 ```
 
 #### 3. **Django Admin**（如果你更喜欢Django）

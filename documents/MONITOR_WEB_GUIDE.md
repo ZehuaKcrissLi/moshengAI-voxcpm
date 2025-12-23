@@ -4,14 +4,14 @@
 
 ### 访问地址
 ```
-http://localhost:3001
+http://localhost:33001
 ```
 
 如果通过SSH端口转发：
 ```bash
-ssh -L 3001:localhost:3001 -L 3000:localhost:3000 -L 8000:localhost:8000 kcriss@10.212.227.125
+ssh -L 33001:localhost:33001 -L 33000:localhost:33000 -L 38000:localhost:38000 kcriss@10.212.227.125
 ```
-然后访问：`http://localhost:3001`
+然后访问：`http://localhost:33001`
 
 ---
 
@@ -122,7 +122,7 @@ python3 -c "from indextts.infer_v2 import IndexTTS2; print('✅ Import成功')"
 ### 实时监控所有日志
 ```bash
 # 方式1：Web监控面板
-http://localhost:3001
+http://localhost:33001
 
 # 方式2：命令行
 tail -f /tmp/backend.log /tmp/frontend.log
@@ -183,7 +183,7 @@ cd /scratch/kcriss/MoshengAI
 source .venv/bin/activate
 
 # 启动后端
-nohup python -m uvicorn backend.app.main:app --host 0.0.0.0 --port 8000 > /tmp/backend.log 2>&1 &
+nohup python -m uvicorn backend.app.main:app --host 0.0.0.0 --port 38000 > /tmp/backend.log 2>&1 &
 
 # 启动前端
 cd frontend
@@ -194,14 +194,14 @@ cd ..
 nohup python3 monitor_web.py > /tmp/monitor.log 2>&1 &
 
 echo "✅ 所有服务已启动"
-echo "前端: http://localhost:3000"
-echo "后端: http://localhost:8000"
-echo "监控: http://localhost:3001"
+echo "前端: http://localhost:33000"
+echo "后端: http://localhost:38000"
+echo "监控: http://localhost:33001"
 ```
 
 ### 停止所有服务
 ```bash
-pkill -f "uvicorn.*8000"
+pkill -f "uvicorn.*38000"
 pkill -f "next dev"
 pkill -f "monitor_web.py"
 ```
@@ -216,28 +216,28 @@ pkill -f "monitor_web.py"
 ## 🌐 访问方式
 
 ### 本地（服务器上）
-- 主应用：`http://localhost:3000`
-- 后端API：`http://localhost:8000`
-- 监控面板：`http://localhost:3001`
+- 主应用：`http://localhost:33000`
+- 后端API：`http://localhost:38000`
+- 监控面板：`http://localhost:33001`
 
 ### 远程（通过SSH）
 ```bash
 # 建立隧道
-ssh -L 3000:localhost:3000 -L 8000:localhost:8000 -L 3001:localhost:3001 kcriss@10.212.227.125
+ssh -L 33000:localhost:33000 -L 38000:localhost:38000 -L 33001:localhost:33001 kcriss@10.212.227.125
 
 # 然后访问
-http://localhost:3001  # 监控面板
-http://localhost:3000  # 主应用
+http://localhost:33001  # 监控面板
+http://localhost:33000  # 主应用
 ```
 
 ### 内网（如果防火墙开放）
-- `http://10.212.227.125:3001`
+- `http://10.212.227.125:33001`
 
 ---
 
 ## 🎯 下一步建议
 
-1. **立即**：访问 http://localhost:3001 查看监控面板
+1. **立即**：访问 http://localhost:33001 查看监控面板
 2. **短期**：修复TTS引擎兼容性（方案1或2）
 3. **中期**：添加性能图表（CPU/内存历史曲线）
 4. **长期**：集成Prometheus + Grafana专业监控
@@ -245,6 +245,13 @@ http://localhost:3000  # 主应用
 ---
 
 **监控面板已就绪！现在你可以实时看到所有系统状态了。** 🎉
+
+
+
+
+
+
+
 
 
 

@@ -9,6 +9,8 @@ import logging
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 from backend.app.core.config import settings
+from backend.app.db.database import AsyncSessionLocal
+from backend.app.db.crud_task import update_task_status
 
 logger = logging.getLogger(__name__)
 
@@ -34,6 +36,12 @@ class VoxCPMEngine:
         print("Initializing VoxCPM Model...")
         logger.info("Initializing VoxCPM Model...")
         try:
+            # Ensure local VoxCPM source is importable without requiring an installed wheel.
+            # Repo path: /scratch/kcriss/MoshengAI/voxcpm-repo/src
+            voxcpm_src = os.path.join(settings.ROOT_DIR, "voxcpm-repo", "src")
+            if voxcpm_src not in sys.path:
+                sys.path.insert(0, voxcpm_src)
+
             from voxcpm import VoxCPM
             
             print("Loading VoxCPM1.5 from HuggingFace...")
@@ -67,7 +75,14 @@ class VoxCPMEngine:
             raise e
 
     async def process_queue(self):
-        """后台worker处理TTS任务队列"""
+        """
+        后台 worker 处理 TTS 任务队列（v0.1 标准路径）。
+        
+        设计目标：
+        - API 层快速返回 task_id（queued）
+        - GPU 推理在单 worker + 单 GPU 上串行执行（ThreadPoolExecutor max_workers=1）
+        - 任务状态（PROCESSING/COMPLETED/FAILED）与 output_url/error_message 全部落库
+        """
         print("="*60)
         print("🚀 VoxCPM Worker started!")
         print("="*60)
@@ -77,13 +92,17 @@ class VoxCPMEngine:
         while True:
             print(f"⏳ Waiting for task from queue... (model: {self.model is not None}) queue id: {id(self.queue)} size: {self.queue.qsize() if self.queue else 'None'}")
             task_data = await self.queue.get()
-            task_id, text, voice_path, future = task_data
+            task_id, text, voice_path = task_data
             
             print(f"📝 Got task {task_id}: {text[:50]}")
             
             try:
                 print(f"🎵 Processing task {task_id}...")
                 logger.info(f"Processing task {task_id}...")
+                
+                # 标记任务为处理中（落库）
+                async with AsyncSessionLocal() as db:
+                    await update_task_status(db, task_id, "PROCESSING")
                 
                 output_filename = f"{task_id}.wav"
                 output_path = os.path.join(settings.GENERATED_AUDIO_DIR, output_filename)
@@ -102,9 +121,11 @@ class VoxCPMEngine:
                     output_path
                 )
                 
-                print(f"   推理完成，设置结果...")
-                # 设置结果
-                future.set_result(f"/static/generated/{output_filename}")
+                result_url = f"/static/generated/{output_filename}"
+                print(f"   推理完成，更新任务状态: {result_url}")
+                async with AsyncSessionLocal() as db:
+                    await update_task_status(db, task_id, "COMPLETED", output_url=result_url)
+
                 print(f"✅ Task {task_id} completed successfully!")
                 logger.info(f"✅ Task {task_id} completed successfully")
                 
@@ -113,7 +134,9 @@ class VoxCPMEngine:
                 logger.error(f"❌ Error processing task {task_id}: {e}")
                 import traceback
                 traceback.print_exc()
-                future.set_exception(e)
+                error_msg = str(e) if e else "Unknown error"
+                async with AsyncSessionLocal() as db:
+                    await update_task_status(db, task_id, "FAILED", error_message=error_msg)
             finally:
                 self.queue.task_done()
 
@@ -122,6 +145,9 @@ class VoxCPMEngine:
         if self.model is None:
             logger.warning("Model not initialized in executor thread, re-initializing...")
             try:
+                voxcpm_src = os.path.join(settings.ROOT_DIR, "voxcpm-repo", "src")
+                if voxcpm_src not in sys.path:
+                    sys.path.insert(0, voxcpm_src)
                 from voxcpm import VoxCPM
                 self.model = VoxCPM.from_pretrained(
                     hf_model_id="openbmb/VoxCPM1.5",
@@ -138,15 +164,16 @@ class VoxCPMEngine:
         try:
             import soundfile as sf
             
-            # 处理voice_path（可能为空字符串或None）
+            # 处理 voice_path（可能为空字符串或None）
             prompt_wav_path = None
             prompt_text = None
+            txt_path = None
             
             if voice_path and os.path.exists(voice_path):
                 prompt_wav_path = voice_path
                 # 读取voice的transcript（如果有）
                 txt_path = os.path.splitext(voice_path)[0] + ".txt"
-            if os.path.exists(txt_path):
+            if txt_path and os.path.exists(txt_path):
                 with open(txt_path, 'r', encoding='utf-8') as f:
                     prompt_text = f.read().strip()
             
@@ -188,22 +215,26 @@ class VoxCPMEngine:
             traceback.print_exc()
             raise e
 
-    async def submit_task(self, text: str, voice_path: str):
-        """提交TTS任务到队列"""
-        task_id = str(uuid.uuid4())
-        future = asyncio.get_running_loop().create_future()
+    async def submit_task(self, task_id: str, text: str, voice_path: str):
+        """
+        提交任务到 TTS 队列（v0.1 标准路径）。
+        
+        参数：
+        - task_id: 数据库 Task.id（由 API 层创建并落库）
+        - text: 待合成文本
+        - voice_path: 音色 wav 的绝对路径
+        """
         
         print(f"📤 Submitting task {task_id} to queue")
         print(f"   Text: {text[:50]}")
         print(f"   Voice: {voice_path}")
         print(f"   Queue size before: {self.queue.qsize()}")
         
-        await self.queue.put((task_id, text, voice_path, future))
+        await self.queue.put((task_id, text, voice_path))
         
         print(f"   Queue size after: {self.queue.qsize()}")
         print(f"✅ Task submitted to queue")
-        
-        return task_id, future
+        return task_id
 
 # 全局实例
 voxcpm_engine = VoxCPMEngine()

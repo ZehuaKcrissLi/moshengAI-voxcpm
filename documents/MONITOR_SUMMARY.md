@@ -26,22 +26,22 @@ python3 monitor_dashboard.py
 ### **3️⃣ Web API监控**
 ```bash
 # 健康检查
-curl http://localhost:8000/monitor/health/detailed | python3 -m json.tool
+curl http://localhost:38000/monitor/health/detailed | python3 -m json.tool
 
 # 系统资源
-curl http://localhost:8000/monitor/system | python3 -m json.tool
+curl http://localhost:38000/monitor/system | python3 -m json.tool
 
 # 服务状态
-curl http://localhost:8000/monitor/services | python3 -m json.tool
+curl http://localhost:38000/monitor/services | python3 -m json.tool
 
 # 数据库统计
-curl http://localhost:8000/monitor/stats/database | python3 -m json.tool
+curl http://localhost:38000/monitor/stats/database | python3 -m json.tool
 
 # 查看后端日志
-curl http://localhost:8000/monitor/logs/backend?lines=50
+curl http://localhost:38000/monitor/logs/backend?lines=50
 
 # 查看前端日志
-curl http://localhost:8000/monitor/logs/frontend?lines=50
+curl http://localhost:38000/monitor/logs/frontend?lines=50
 ```
 
 ---
@@ -136,8 +136,8 @@ sed -i 's/transformers==4.40.0/transformers==4.36.0/' pyproject.toml
 uv sync
 
 # 重启后端
-pkill -f "uvicorn.*8000"
-nohup python -m uvicorn backend.app.main:app --host 0.0.0.0 --port 8000 > /tmp/backend.log 2>&1 &
+pkill -f "uvicorn.*38000"
+nohup python -m uvicorn backend.app.main:app --host 0.0.0.0 --port 38000 > /tmp/backend.log 2>&1 &
 
 # 查看日志确认TTS是否初始化成功
 tail -f /tmp/backend.log
@@ -270,10 +270,10 @@ df -i
 ### **重启服务**
 ```bash
 # 重启后端
-pkill -f "uvicorn.*8000"
+pkill -f "uvicorn.*38000"
 cd /scratch/kcriss/MoshengAI
 source .venv/bin/activate
-nohup python -m uvicorn backend.app.main:app --host 0.0.0.0 --port 8000 > /tmp/backend.log 2>&1 &
+nohup python -m uvicorn backend.app.main:app --host 0.0.0.0 --port 38000 > /tmp/backend.log 2>&1 &
 
 # 重启前端
 pkill -f "next dev"
@@ -284,10 +284,10 @@ nohup npm run dev > /tmp/frontend.log 2>&1 &
 ### **检查端口占用**
 ```bash
 # 查看8000端口
-ss -tlnp | grep 8000
+ss -tlnp | grep 38000
 
 # 查看3000端口
-ss -tlnp | grep 3000
+ss -tlnp | grep 33000
 
 # 查看所有监听端口
 ss -tlnp
@@ -333,7 +333,7 @@ cp mosheng.db mosheng_backup_$(date +%Y%m%d).db
 | **GPU监控** | `watch -n 1 nvidia-smi` |
 | **CPU/内存监控** | `htop` |
 | **数据库统计** | `python3 manage_db.py stats` |
-| **健康检查API** | `curl localhost:8000/monitor/health/detailed` |
+| **健康检查API** | `curl localhost:38000/monitor/health/detailed` |
 | **查看任务** | `python3 manage_db.py tasks` |
 | **给用户充值** | `python3 manage_db.py credits EMAIL AMOUNT` |
 
@@ -359,6 +359,13 @@ cp mosheng.db mosheng_backup_$(date +%Y%m%d).db
 ---
 
 **所有监控工具已就绪！祝你运维顺利！** 🚀
+
+
+
+
+
+
+
 
 
 

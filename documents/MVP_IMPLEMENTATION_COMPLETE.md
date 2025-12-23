@@ -166,7 +166,7 @@
 
 #### 1. 用户注册
 ```bash
-curl -X POST http://localhost:8000/auth/register \
+curl -X POST http://localhost:38000/auth/register \
   -H "Content-Type: application/json" \
   -d '{"email": "mvp@mosheng.ai", "password": "test12345"}'
 ```
@@ -185,7 +185,7 @@ curl -X POST http://localhost:8000/auth/register \
 
 #### 2. 用户登录
 ```bash
-curl -X POST http://localhost:8000/auth/login \
+curl -X POST http://localhost:38000/auth/login \
   -H "Content-Type: application/x-www-form-urlencoded" \
   -d "username=mvp@mosheng.ai&password=test12345"
 ```
@@ -199,14 +199,14 @@ curl -X POST http://localhost:8000/auth/login \
 
 #### 3. 获取用户信息
 ```bash
-curl http://localhost:8000/auth/me \
+curl http://localhost:38000/auth/me \
   -H "Authorization: Bearer [TOKEN]"
 ```
 ✅ 正常返回用户信息
 
 #### 4. 查询积分余额
 ```bash
-curl http://localhost:8000/credits/balance \
+curl http://localhost:38000/credits/balance \
   -H "Authorization: Bearer [TOKEN]"
 ```
 ✅ 返回：
@@ -288,7 +288,7 @@ curl http://localhost:8000/credits/balance \
 ```bash
 cd /scratch/kcriss/MoshengAI
 source .venv/bin/activate
-python -m uvicorn backend.app.main:app --host 0.0.0.0 --port 8000
+python -m uvicorn backend.app.main:app --host 0.0.0.0 --port 38000
 ```
 
 ### 前端
@@ -356,8 +356,8 @@ npm run dev
 ---
 
 ## 📚 API文档
-- Swagger UI: `http://localhost:8000/docs`
-- ReDoc: `http://localhost:8000/redoc`
+- Swagger UI: `http://localhost:38000/docs`
+- ReDoc: `http://localhost:38000/redoc`
 
 ---
 

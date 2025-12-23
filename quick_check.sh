@@ -5,9 +5,9 @@ echo "🔍 MoshengAI 快速系统检查"
 echo "================================"
 
 # 后端
-if pgrep -f "uvicorn.*8000" > /dev/null; then
-    echo "✅ 后端运行中 (8000端口)"
-    HEALTH=$(curl -s http://localhost:8000/health 2>/dev/null)
+if pgrep -f "uvicorn.*38000" > /dev/null; then
+    echo "✅ 后端运行中 (38000端口)"
+    HEALTH=$(curl -s http://localhost:38000/health 2>/dev/null)
     if [ "$HEALTH" = '{"status":"ok"}' ]; then
         echo "   └─ API响应正常"
     else
@@ -18,14 +18,14 @@ else
 fi
 
 # 前端
-if ss -tlnp 2>/dev/null | grep -q :3000; then
-    echo "✅ 前端运行中 (3000端口)"
+if ss -tlnp 2>/dev/null | grep -q :33000; then
+    echo "✅ 前端运行中 (33000端口)"
 else
     echo "❌ 前端未运行"
 fi
 
 # TTS引擎
-TTS_STATUS=$(curl -s http://localhost:8000/monitor/services 2>/dev/null | python3 -c "import sys,json; print(json.load(sys.stdin).get('tts_engine', False))" 2>/dev/null)
+TTS_STATUS=$(curl -s http://localhost:38000/monitor/services 2>/dev/null | python3 -c "import sys,json; print(json.load(sys.stdin).get('tts_engine', False))" 2>/dev/null)
 if [ "$TTS_STATUS" = "True" ]; then
     echo "✅ TTS引擎正常"
 else
@@ -63,6 +63,12 @@ echo "================================"
 echo "📊 详细监控: python3 monitor_dashboard.py"
 echo "📋 数据库管理: python3 manage_db.py stats"
 echo "================================"
+
+
+
+
+
+
 
 
 

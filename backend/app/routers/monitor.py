@@ -2,16 +2,21 @@
 系统监控API
 提供服务状态、资源使用、日志查看等功能
 """
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import StreamingResponse, FileResponse
 from pydantic import BaseModel
 from typing import List, Dict, Any
 import psutil
 import os
 import subprocess
-import sqlite3
 from datetime import datetime, timedelta
 import asyncio
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import func, select, text
+
+from backend.app.core.config import settings
+from backend.app.db.database import get_db, engine, AsyncSessionLocal
+from backend.app.db.models import User, Task
 
 router = APIRouter()
 
@@ -94,7 +99,7 @@ async def get_service_status():
     frontend = False
     try:
         result = subprocess.run(['ss', '-tlnp'], capture_output=True, text=True, timeout=2)
-        frontend = ':3000' in result.stdout
+        frontend = ':33000' in result.stdout
     except:
         pass
     
@@ -113,11 +118,8 @@ async def get_service_status():
     # 检查数据库
     database = False
     try:
-        db_path = '/scratch/kcriss/MoshengAI/mosheng.db'
-        if os.path.exists(db_path):
-            conn = sqlite3.connect(db_path)
-            conn.execute("SELECT 1")
-            conn.close()
+        async with AsyncSessionLocal() as db:
+            await db.execute(text("SELECT 1"))
             database = True
     except:
         pass
@@ -166,55 +168,95 @@ async def get_frontend_logs(lines: int = 100):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/stats/database")
-async def get_database_stats():
-    """获取数据库统计"""
-    db_path = '/scratch/kcriss/MoshengAI/mosheng.db'
-    if not os.path.exists(db_path):
-        raise HTTPException(status_code=404, detail="Database not found")
+async def get_database_stats(db: AsyncSession = Depends(get_db)):
+    """
+    获取数据库统计（v0.1 统一通过 ORM/AsyncSession）。
     
-    conn = sqlite3.connect(db_path)
-    cursor = conn.cursor()
-    
+    返回字段保持兼容 monitor_web / monitor_dashboard 的展示结构。
+    """
     # 用户统计
-    cursor.execute("SELECT COUNT(*) FROM users")
-    total_users = cursor.fetchone()[0]
-    
-    cursor.execute("SELECT SUM(credits_balance) FROM users")
-    total_credits = cursor.fetchone()[0] or 0
-    
-    # 任务统计
-    cursor.execute("SELECT COUNT(*), status FROM tasks GROUP BY status")
-    task_stats = {status: count for count, status in cursor.fetchall()}
-    
-    cursor.execute("SELECT COUNT(*) FROM tasks WHERE DATE(created_at) = DATE('now')")
-    today_tasks = cursor.fetchone()[0]
-    
+    total_users = (await db.execute(select(func.count(User.id)))).scalar_one()
+    total_credits = (await db.execute(select(func.coalesce(func.sum(User.credits_balance), 0)))).scalar_one()
+
+    # 今日任务数（按数据库当前日期）
+    today_tasks = (
+        await db.execute(
+            select(func.count(Task.id)).where(func.date(Task.created_at) == func.current_date())
+        )
+    ).scalar_one()
+
+    # 任务统计（状态分布）
+    task_stats_rows = (
+        await db.execute(
+            select(Task.status, func.count(Task.id)).group_by(Task.status)
+        )
+    ).all()
+    task_stats = {status: count for status, count in task_stats_rows}
+
+    # 24h 窗口统计（用 UTC 时间戳阈值）
+    cutoff = datetime.utcnow() - timedelta(hours=24)
+    tasks_24h = (
+        await db.execute(
+            select(func.count(Task.id)).where(Task.created_at >= cutoff)
+        )
+    ).scalar_one()
+    total_chars_24h = (
+        await db.execute(
+            select(func.coalesce(func.sum(func.length(Task.text)), 0))
+            .where(Task.created_at >= cutoff)
+            .where(Task.status == "COMPLETED")
+        )
+    ).scalar_one()
+    total_cost_24h = (
+        await db.execute(
+            select(func.coalesce(func.sum(Task.cost), 0)).where(Task.created_at >= cutoff)
+        )
+    ).scalar_one()
+
     # 最近任务
-    cursor.execute("""
-        SELECT id, status, created_at, error_message 
-        FROM tasks 
-        ORDER BY created_at DESC 
-        LIMIT 10
-    """)
+    recent_rows = (
+        await db.execute(
+            select(
+                Task.id,
+                Task.status,
+                Task.created_at,
+                Task.error_message,
+                Task.text,
+                Task.cost,
+            )
+            .order_by(Task.created_at.desc())
+            .limit(10)
+        )
+    ).all()
     recent_tasks = [
         {
-            'id': row[0],
-            'status': row[1],
-            'created_at': row[2],
-            'error': row[3]
+            "id": row[0],
+            "status": row[1],
+            "created_at": row[2].isoformat() if row[2] else None,
+            "error": row[3],
+            "text": row[4],
+            "cost": row[5],
         }
-        for row in cursor.fetchall()
+        for row in recent_rows
     ]
-    
-    conn.close()
+
+    # 数据库大小（Postgres 等场景无法用文件大小；为兼容返回 0.0）
+    database_size_mb = 0.0
+    if settings.DATABASE_URL.startswith("sqlite"):
+        db_path = settings.DATABASE_URL.split("///", 1)[-1]
+        if os.path.exists(db_path):
+            database_size_mb = os.path.getsize(db_path) / (1024**2)
     
     return {
         'total_users': total_users,
         'total_credits': total_credits,
         'task_stats': task_stats,
         'today_tasks': today_tasks,
+        'tasks_24h': tasks_24h,
+        'total_chars_24h': total_chars_24h,
+        'total_cost_24h': total_cost_24h,
         'recent_tasks': recent_tasks,
-        'database_size_mb': os.path.getsize(db_path) / (1024**2)
+        'database_size_mb': database_size_mb
     }
 
 @router.get("/health/detailed")

@@ -16,8 +16,13 @@ import asyncio
 import json
 from datetime import datetime
 from typing import List, Optional
-import sqlite3
 from pydantic import BaseModel
+import urllib.request
+from sqlalchemy import select, update, delete, func
+
+from backend.app.db.database import AsyncSessionLocal
+from backend.app.db.models import User as DbUser, Task as DbTask
+from backend.app.db.crud_credits import apply_credit_transaction
 
 app = FastAPI(title="MoshengAI Monitor")
 
@@ -51,13 +56,6 @@ class UserUpdate(BaseModel):
 class CreditsUpdate(BaseModel):
     amount: int
     reason: str = "Manual adjustment"
-
-def get_db_connection():
-    """获取数据库连接"""
-    db_path = '/scratch/kcriss/MoshengAI/mosheng.db'
-    if not os.path.exists(db_path):
-        raise HTTPException(status_code=404, detail="Database not found")
-    return sqlite3.connect(db_path)
 
 def get_system_info():
     """获取系统信息"""
@@ -102,6 +100,10 @@ def get_system_info():
         'gpu_info': gpu_info
     }
 
+# TTS引擎状态缓存（避免频繁HTTP请求）
+_tts_engine_cache = {'status': False, 'timestamp': 0}
+_tts_cache_ttl = 10  # 缓存10秒
+
 def get_services_status():
     """获取服务状态"""
     backend = False
@@ -109,20 +111,35 @@ def get_services_status():
     
     try:
         result = subprocess.run(['ss', '-tlnp'], capture_output=True, text=True, timeout=2)
-        backend = ':33000' in result.stdout
-        frontend = ':38000' in result.stdout
+        backend = ':38000' in result.stdout
+        frontend = ':33000' in result.stdout
     except:
         pass
     
-    # TTS引擎状态
+    # TTS引擎状态 - 使用缓存机制减少HTTP请求频率
+    global _tts_engine_cache, _tts_cache_ttl
     tts_engine = False
-    try:
-        import requests
-        response = requests.get('http://localhost:33000/monitor/services', timeout=2)
-        if response.status_code == 200:
-            tts_engine = response.json().get('tts_engine', False)
-    except:
-        pass
+    
+    current_time = datetime.now().timestamp()
+    # 如果缓存未过期，直接使用缓存
+    if current_time - _tts_engine_cache['timestamp'] < _tts_cache_ttl:
+        tts_engine = _tts_engine_cache['status']
+    else:
+        # 缓存过期，通过HTTP请求获取真实状态
+        try:
+            with urllib.request.urlopen('http://localhost:38000/monitor/services', timeout=2) as resp:
+                if resp.status != 200:
+                    raise ValueError("non-200 response")
+                data = json.loads(resp.read().decode("utf-8"))
+                tts_engine = data.get('tts_engine', False)
+                # 更新缓存
+                _tts_engine_cache = {
+                    'status': tts_engine,
+                    'timestamp': current_time
+                }
+        except Exception:
+            # 请求失败，使用缓存值（即使过期）
+            tts_engine = _tts_engine_cache['status']
     
     return {
         'backend': backend,
@@ -130,32 +147,26 @@ def get_services_status():
         'tts_engine': tts_engine
     }
 
-def get_database_stats():
-    """获取数据库统计"""
-    db_path = '/scratch/kcriss/MoshengAI/mosheng.db'
-    if not os.path.exists(db_path):
-        return {}
-    
+async def get_database_stats():
+    """
+    获取数据库统计（v0.1：使用 SQLAlchemy AsyncSession，兼容 Postgres）。
+    """
     try:
-        conn = sqlite3.connect(db_path)
-        cursor = conn.cursor()
-        
-        cursor.execute("SELECT COUNT(*) FROM users")
-        total_users = cursor.fetchone()[0]
-        
-        cursor.execute("SELECT SUM(credits_balance) FROM users")
-        total_credits = cursor.fetchone()[0] or 0
-        
-        cursor.execute("SELECT COUNT(*) FROM tasks")
-        total_tasks = cursor.fetchone()[0]
-        
-        cursor.execute("SELECT COUNT(*), status FROM tasks GROUP BY status")
-        task_stats = {status: count for count, status in cursor.fetchall()}
-        
-        cursor.execute("SELECT COUNT(*) FROM tasks WHERE DATE(created_at) = DATE('now')")
-        today_tasks = cursor.fetchone()[0]
-        
-        conn.close()
+        async with AsyncSessionLocal() as db:
+            total_users = (await db.execute(select(func.count(DbUser.id)))).scalar_one()
+            total_credits = (await db.execute(select(func.coalesce(func.sum(DbUser.credits_balance), 0)))).scalar_one()
+            total_tasks = (await db.execute(select(func.count(DbTask.id)))).scalar_one()
+
+            task_stats_rows = (
+                await db.execute(select(DbTask.status, func.count(DbTask.id)).group_by(DbTask.status))
+            ).all()
+            task_stats = {status: count for status, count in task_stats_rows}
+
+            today_tasks = (
+                await db.execute(
+                    select(func.count(DbTask.id)).where(func.date(DbTask.created_at) == func.current_date())
+                )
+            ).scalar_one()
         
         return {
             'total_users': total_users,
@@ -163,7 +174,7 @@ def get_database_stats():
             'total_tasks': total_tasks,
             'task_stats': task_stats,
             'today_tasks': today_tasks,
-            'database_size_mb': os.path.getsize(db_path) / (1024**2)
+                'database_size_mb': 0.0
         }
     except:
         return {}
@@ -184,185 +195,154 @@ def get_recent_logs(log_file, lines=50):
 @app.get("/api/users")
 async def get_users():
     """获取所有用户列表"""
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    
-    cursor.execute("""
-        SELECT id, email, provider, credits_balance, is_admin, created_at
-        FROM users
-        ORDER BY created_at DESC
-    """)
-    
-    users = []
-    for row in cursor.fetchall():
-        users.append({
-            'id': row[0],
-            'email': row[1],
-            'provider': row[2],
-            'credits_balance': row[3],
-            'is_admin': row[4],
-            'created_at': row[5]
-        })
-    
-    conn.close()
+    async with AsyncSessionLocal() as db:
+        rows = (
+            await db.execute(
+                select(DbUser).order_by(DbUser.created_at.desc())
+            )
+        ).scalars().all()
+        users = [
+            {
+                'id': u.id,
+                'email': u.email,
+                'provider': u.provider,
+                'credits_balance': u.credits_balance,
+                'is_admin': u.is_admin,
+                'created_at': u.created_at.isoformat() if u.created_at else None
+            }
+            for u in rows
+        ]
     return {'users': users}
 
 @app.get("/api/users/{user_id}")
 async def get_user(user_id: str):
     """获取单个用户信息"""
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    
-    cursor.execute("""
-        SELECT id, email, provider, credits_balance, is_admin, created_at
-        FROM users
-        WHERE id = ?
-    """, (user_id,))
-    
-    row = cursor.fetchone()
-    conn.close()
-    
-    if not row:
-        raise HTTPException(status_code=404, detail="User not found")
-    
-    return {
-        'id': row[0],
-        'email': row[1],
-        'provider': row[2],
-        'credits_balance': row[3],
-        'is_admin': row[4],
-        'created_at': row[5]
-    }
+    async with AsyncSessionLocal() as db:
+        user = (
+            await db.execute(select(DbUser).where(DbUser.id == user_id))
+        ).scalars().first()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        return {
+            'id': user.id,
+            'email': user.email,
+            'provider': user.provider,
+            'credits_balance': user.credits_balance,
+            'is_admin': user.is_admin,
+            'created_at': user.created_at.isoformat() if user.created_at else None
+        }
 
 @app.put("/api/users/{user_id}")
 async def update_user(user_id: str, update: UserUpdate):
     """更新用户信息"""
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    
-    # 检查用户是否存在
-    cursor.execute("SELECT id FROM users WHERE id = ?", (user_id,))
-    if not cursor.fetchone():
-        conn.close()
-        raise HTTPException(status_code=404, detail="User not found")
-    
-    # 构建更新语句
-    updates = []
-    params = []
-    
-    if update.email is not None:
-        updates.append("email = ?")
-        params.append(update.email)
-    
-    if update.credits_balance is not None:
-        updates.append("credits_balance = ?")
-        params.append(update.credits_balance)
-    
-    if update.is_admin is not None:
-        updates.append("is_admin = ?")
-        params.append(update.is_admin)
-    
-    if not updates:
-        conn.close()
-        raise HTTPException(status_code=400, detail="No fields to update")
-    
-    params.append(user_id)
-    cursor.execute(
-        f"UPDATE users SET {', '.join(updates)} WHERE id = ?",
-        params
-    )
-    
-    conn.commit()
-    conn.close()
-    
-    return {'message': 'User updated successfully'}
+    async with AsyncSessionLocal() as db:
+        user = (
+            await db.execute(select(DbUser).where(DbUser.id == user_id))
+        ).scalars().first()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        if update.email is None and update.credits_balance is None and update.is_admin is None:
+            raise HTTPException(status_code=400, detail="No fields to update")
+
+        if update.email is not None:
+            user.email = update.email
+        if update.is_admin is not None:
+            user.is_admin = update.is_admin
+
+        # credits_balance uses ledger adjustment (absolute -> delta)
+        if update.credits_balance is not None:
+            delta = int(update.credits_balance) - int(user.credits_balance)
+            if delta != 0:
+                result = await apply_credit_transaction(
+                    db=db,
+                    user_id=user.id,
+                    amount=delta,
+                    kind="ADJUSTMENT",
+                    reason="Monitor: set credits_balance",
+                )
+                if result is None:
+                    raise HTTPException(status_code=400, detail="Insufficient credits for adjustment")
+
+        await db.commit()
+        return {'message': 'User updated successfully'}
 
 @app.delete("/api/users/{user_id}")
 async def delete_user(user_id: str):
     """删除用户"""
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    
-    cursor.execute("DELETE FROM users WHERE id = ?", (user_id,))
-    
-    if cursor.rowcount == 0:
-        conn.close()
-        raise HTTPException(status_code=404, detail="User not found")
-    
-    conn.commit()
-    conn.close()
-    
-    return {'message': 'User deleted successfully'}
+    async with AsyncSessionLocal() as db:
+        result = await db.execute(delete(DbUser).where(DbUser.id == user_id))
+        if result.rowcount == 0:
+            raise HTTPException(status_code=404, detail="User not found")
+        await db.commit()
+        return {'message': 'User deleted successfully'}
 
 @app.post("/api/users/{user_id}/credits")
 async def update_user_credits(user_id: str, update: CreditsUpdate):
     """更新用户积分"""
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    
-    # 获取当前积分
-    cursor.execute("SELECT credits_balance FROM users WHERE id = ?", (user_id,))
-    row = cursor.fetchone()
-    
-    if not row:
-        conn.close()
-        raise HTTPException(status_code=404, detail="User not found")
-    
-    current_balance = row[0]
-    new_balance = current_balance + update.amount
-    
-    if new_balance < 0:
-        conn.close()
-        raise HTTPException(status_code=400, detail="Insufficient credits")
-    
-    # 更新积分
-    cursor.execute(
-        "UPDATE users SET credits_balance = ? WHERE id = ?",
-        (new_balance, user_id)
-    )
-    
-    conn.commit()
-    conn.close()
-    
-    return {
-        'message': f'Credits updated: {update.amount:+d}',
-        'old_balance': current_balance,
-        'new_balance': new_balance,
-        'reason': update.reason
-    }
+    async with AsyncSessionLocal() as db:
+        user = (
+            await db.execute(select(DbUser).where(DbUser.id == user_id))
+        ).scalars().first()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        old_balance = int(user.credits_balance)
+        result = await apply_credit_transaction(
+            db=db,
+            user_id=user.id,
+            amount=int(update.amount),
+            kind="ADJUSTMENT",
+            reason=update.reason,
+        )
+        if result is None:
+            raise HTTPException(status_code=400, detail="Insufficient credits")
+        _, new_balance = result
+        await db.commit()
+        return {
+            'message': f'Credits updated: {int(update.amount):+d}',
+            'old_balance': old_balance,
+            'new_balance': new_balance,
+            'reason': update.reason
+        }
 
 @app.get("/api/tasks")
 async def get_tasks(limit: int = 100, offset: int = 0):
     """获取任务列表"""
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    
-    cursor.execute("""
-        SELECT id, user_id, text, status, cost, output_url, error_message, created_at, completed_at
-        FROM tasks
-        ORDER BY created_at DESC
-        LIMIT ? OFFSET ?
-    """, (limit, offset))
-    
-    tasks = []
-    for row in cursor.fetchall():
-        tasks.append({
-            'id': row[0],
-            'user_id': row[1],
-            'text': row[2][:50] + '...' if row[2] and len(row[2]) > 50 else row[2],
-            'status': row[3],
-            'cost': row[4],
-            'output_url': row[5],
-            'error_message': row[6],
-            'created_at': row[7],
-            'completed_at': row[8]
-        })
-    
-    cursor.execute("SELECT COUNT(*) FROM tasks")
-    total = cursor.fetchone()[0]
-    
-    conn.close()
-    return {'tasks': tasks, 'total': total}
+    if limit <= 0:
+        raise HTTPException(status_code=400, detail="limit must be positive")
+    if limit > 500:
+        raise HTTPException(status_code=400, detail="limit too large")
+    if offset < 0:
+        raise HTTPException(status_code=400, detail="offset must be non-negative")
+
+    async with AsyncSessionLocal() as db:
+        rows = (
+            await db.execute(
+                select(DbTask)
+                .order_by(DbTask.created_at.desc())
+                .limit(limit)
+                .offset(offset)
+            )
+        ).scalars().all()
+        total = (await db.execute(select(func.count(DbTask.id)))).scalar_one()
+
+        tasks = []
+        for t in rows:
+            text_value = t.text or ""
+            tasks.append({
+                'id': t.id,
+                'user_id': t.user_id,
+                'text': (text_value[:50] + '...') if len(text_value) > 50 else text_value,
+                'status': t.status,
+                'cost': t.cost,
+                'output_url': t.output_url,
+                'error_message': t.error_message,
+                'created_at': t.created_at.isoformat() if t.created_at else None,
+                'completed_at': t.completed_at.isoformat() if t.completed_at else None
+            })
+
+        return {'tasks': tasks, 'total': total}
 
 @app.get("/", response_class=HTMLResponse)
 async def get_monitor_page():
@@ -891,7 +871,7 @@ async def get_monitor_page():
             
             ws.onclose = () => {
                 console.log('❌ WebSocket连接已断开，3秒后重连...');
-                setTimeout(connectWebSocket, 3000);
+                setTimeout(connectWebSocket, 33000);
             };
             
             ws.onerror = (error) => {
@@ -1159,7 +1139,7 @@ async def websocket_endpoint(websocket: WebSocket):
             data = {
                 'system': get_system_info(),
                 'services': get_services_status(),
-                'database': get_database_stats(),
+                'database': await get_database_stats(),
                 'backend_logs': get_recent_logs('/tmp/backend.log', 50),
                 'frontend_logs': get_recent_logs('/tmp/frontend.log', 50),
                 'timestamp': datetime.now().isoformat()

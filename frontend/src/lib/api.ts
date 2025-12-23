@@ -1,10 +1,10 @@
 import axios from 'axios';
 
-// Use Next.js rewrite proxy: /api/* -> http://localhost:33000/*
-// This allows the backend to stay on localhost without exposing port 33000 to the public
+// Use Next.js rewrite proxy: /api/* -> http://localhost:38000/*
+// This allows the backend to stay on localhost without exposing port 38000 to the public
 const API_URL = typeof window !== 'undefined' 
-  ? '/api'  // Browser: use relative path, Next.js will proxy to localhost:33000
-  : 'http://localhost:33000';  // SSR: direct access to backend
+  ? '/api'  // Browser: use relative path, Next.js will proxy to localhost:38000
+  : 'http://localhost:38000';  // SSR: direct access to backend
 
 export const api = axios.create({
   baseURL: API_URL,
@@ -81,6 +81,14 @@ export interface BalanceResponse {
   user_id: string;
 }
 
+export interface FeedbackResponse {
+  id: string;
+  user_id: string;
+  message: string;
+  contact?: string;
+  created_at: string;
+}
+
 // Auth APIs
 export const register = async (email: string, password: string): Promise<UserResponse> => {
   const response = await api.post('/auth/register', { email, password });
@@ -127,6 +135,18 @@ export const generateAudio = async (text: string, voiceId: string): Promise<Gene
 
 export const getTaskStatus = async (taskId: string): Promise<TaskStatus> => {
   const response = await api.get(`/tts/status/${taskId}`);
+  return response.data;
+};
+
+/**
+ * Submit user feedback / support request.
+ *
+ * Parameters:
+ * - message: feedback content
+ * - contact: optional contact method (email/wechat/telegram)
+ */
+export const submitFeedback = async (message: string, contact?: string): Promise<FeedbackResponse> => {
+  const response = await api.post('/feedback', { message, contact });
   return response.data;
 };
 

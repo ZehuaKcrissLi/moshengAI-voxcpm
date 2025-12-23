@@ -8,12 +8,12 @@
 
 ### 前端访问地址
 ```
-http://10.212.227.125:3000
+http://10.212.227.125:33000
 ```
 
 ### 后端API地址
 ```
-http://10.212.227.125:8000
+http://10.212.227.125:38000
 ```
 
 ---
@@ -22,12 +22,12 @@ http://10.212.227.125:8000
 
 ### 错误访问方式：
 ```
-http://localhost:3000  ❌ 错误！这只能在服务器本机使用
+http://localhost:33000  ❌ 错误！这只能在服务器本机使用
 ```
 
 **原因**: 
 - 服务运行在远程服务器 `10.212.227.125` 上
-- 你的浏览器在本地电脑上访问 `localhost:3000`
+- 你的浏览器在本地电脑上访问 `localhost:33000`
 - `localhost` 指向的是**你的本地电脑**，不是远程服务器
 - 所以浏览器请求发出但找不到服务（Response Headers: 0）
 
@@ -39,7 +39,7 @@ http://localhost:3000  ❌ 错误！这只能在服务器本机使用
 
 1. 在浏览器地址栏输入：
    ```
-   http://10.212.227.125:3000
+   http://10.212.227.125:33000
    ```
 
 2. 如果看到 "Mosheng AI" 界面，说明成功！
@@ -50,10 +50,10 @@ http://localhost:3000  ❌ 错误！这只能在服务器本机使用
 
 ```bash
 # 在你的本地电脑运行（不是服务器上）
-ssh -L 3000:localhost:3000 -L 8000:localhost:8000 kcriss@10.212.227.125
+ssh -L 33000:localhost:33000 -L 38000:localhost:38000 kcriss@10.212.227.125
 
 # 然后在浏览器访问
-http://localhost:3000
+http://localhost:33000
 ```
 
 **说明**: 这会将你本地的3000端口转发到服务器的3000端口
@@ -65,27 +65,27 @@ http://localhost:3000
 ### 1. 检查后端API
 在浏览器或命令行测试：
 ```bash
-curl http://10.212.227.125:8000/health
+curl http://10.212.227.125:38000/health
 # 应该返回: {"status":"ok"}
 ```
 
 ### 2. 检查音色列表
 ```bash
-curl http://10.212.227.125:8000/voices/ | head -20
+curl http://10.212.227.125:38000/voices/ | head -20
 # 应该返回: 137个音色的JSON数据
 ```
 
 ### 3. 在服务器上验证（管理员用）
 ```bash
 # 检查端口监听
-netstat -tlnp | grep -E ':(3000|8000)'
+netstat -tlnp | grep -E ':(33000|38000)'
 
 # 检查进程
 ps aux | grep -E "(next dev|uvicorn)"
 
 # 本地测试
-curl http://localhost:3000 | head -20
-curl http://localhost:8000/health
+curl http://localhost:33000 | head -20
+curl http://localhost:38000/health
 ```
 
 ---
@@ -99,8 +99,8 @@ curl http://localhost:8000/health
         ↓
 服务器 10.212.227.125
         |
-        ├─ 端口 3000: Next.js 前端
-        └─ 端口 8000: FastAPI 后端 + TTS引擎
+        ├─ 端口 33000: Next.js 前端
+        └─ 端口 38000: FastAPI 后端 + TTS引擎
 ```
 
 ---
@@ -113,21 +113,21 @@ curl http://localhost:8000/health
 ```bash
 # 在服务器上检查防火墙
 sudo ufw status
-sudo ufw allow 3000
-sudo ufw allow 8000
+sudo ufw allow 33000
+sudo ufw allow 38000
 ```
 
 **可能原因2**: 网络不通
 ```bash
 # 在本地电脑测试网络连通性
 ping 10.212.227.125
-telnet 10.212.227.125 3000
+telnet 10.212.227.125 33000
 ```
 
 **可能原因3**: 服务未启动
 ```bash
 # 在服务器上检查
-curl http://localhost:3000
+curl http://localhost:33000
 # 如果失败，重启服务
 cd /scratch/kcriss/MoshengAI/frontend && npm run dev
 ```
@@ -138,9 +138,9 @@ cd /scratch/kcriss/MoshengAI/frontend && npm run dev
 ```javascript
 // 文件: /scratch/kcriss/MoshengAI/frontend/src/lib/api.ts
 // 应该是:
-const API_URL = 'http://10.212.227.125:8000';  // 使用服务器IP
+const API_URL = 'http://10.212.227.125:38000';  // 使用服务器IP
 // 而不是:
-const API_URL = 'http://localhost:8000';  // 这会失败
+const API_URL = 'http://localhost:38000';  // 这会失败
 ```
 
 ---
@@ -149,14 +149,14 @@ const API_URL = 'http://localhost:8000';  // 这会失败
 
 如果你的手机和服务器在同一局域网，也可以访问：
 ```
-http://10.212.227.125:3000
+http://10.212.227.125:33000
 ```
 
 ---
 
 ## 🔐 安全建议
 
-**当前配置**: 开发环境，监听 `0.0.0.0:3000` 和 `0.0.0.0:8000`
+**当前配置**: 开发环境，监听 `0.0.0.0:33000` 和 `0.0.0.0:38000`
 - ✅ 优点: 可从任何IP访问，方便开发测试
 - ⚠️ 风险: 暴露在局域网，任何人都可访问
 
@@ -173,17 +173,17 @@ http://10.212.227.125:3000
 
 | 服务 | 地址 | 状态 | 协议 |
 |-----|------|------|------|
-| 前端 | http://10.212.227.125:3000 | 🟢 运行中 | HTTP |
-| 后端 | http://10.212.227.125:8000 | 🟢 运行中 | HTTP |
-| 后端健康检查 | http://10.212.227.125:8000/health | 🟢 正常 | JSON |
-| 音色API | http://10.212.227.125:8000/voices/ | 🟢 137个音色 | JSON |
+| 前端 | http://10.212.227.125:33000 | 🟢 运行中 | HTTP |
+| 后端 | http://10.212.227.125:38000 | 🟢 运行中 | HTTP |
+| 后端健康检查 | http://10.212.227.125:38000/health | 🟢 正常 | JSON |
+| 音色API | http://10.212.227.125:38000/voices/ | 🟢 137个音色 | JSON |
 
 ---
 
 ## 🚀 快速开始
 
 1. 打开浏览器
-2. 访问: `http://10.212.227.125:3000`
+2. 访问: `http://10.212.227.125:33000`
 3. 点击底部 "Change Voice" 按钮选择音色
 4. 输入文字
 5. 点击发送生成语音

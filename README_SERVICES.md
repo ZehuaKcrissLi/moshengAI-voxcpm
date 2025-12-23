@@ -19,9 +19,9 @@ cd /scratch/kcriss/MoshengAI
 
 | 服务 | 端口 | 用途 | 状态 |
 |------|------|------|------|
-| **前端应用** | 3000 | 用户界面 | ✅ 正常 |
-| **后端API** | 8000 | FastAPI服务 | ✅ 正常 |
-| **监控面板** | 3001 | 实时监控 | ✅ 正常 |
+| **前端应用** | 33000 | 用户界面 | ✅ 正常 |
+| **后端API** | 38000 | FastAPI服务 | ✅ 正常 |
+| **监控面板** | 33001 | 实时监控 | ✅ 正常 |
 | **TTS引擎** | - | 语音合成 | ⚠️ 兼容性问题 |
 
 ---
@@ -30,20 +30,20 @@ cd /scratch/kcriss/MoshengAI
 
 ### 本地访问（在服务器上）
 ```
-主应用:     http://localhost:3000
-后端API:    http://localhost:8000/docs
-监控面板:   http://localhost:3001
+主应用:     http://localhost:33000
+后端API:    http://localhost:38000/docs
+监控面板:   http://localhost:33001
 ```
 
 ### 远程访问（通过SSH端口转发）
 ```bash
 # 在你的本地电脑上运行
-ssh -L 3000:localhost:3000 -L 3001:localhost:3001 -L 8000:localhost:8000 kcriss@10.212.227.125
+ssh -L 33000:localhost:33000 -L 33001:localhost:33001 -L 38000:localhost:38000 kcriss@10.212.227.125
 
 # 然后在浏览器访问
-http://localhost:3000   # 主应用
-http://localhost:3001   # 监控面板
-http://localhost:8000   # 后端API
+http://localhost:33000   # 主应用
+http://localhost:33001   # 监控面板
+http://localhost:38000   # 后端API
 ```
 
 ---
@@ -52,7 +52,7 @@ http://localhost:8000   # 后端API
 
 ### 访问监控面板
 ```
-http://localhost:3001
+http://localhost:33001
 ```
 
 ### 功能特性
@@ -155,7 +155,7 @@ ps aux | grep -E "uvicorn|next|monitor" | grep -v grep
 
 ### 查看端口
 ```bash
-ss -tlnp | grep -E ":(3000|3001|8000)"
+ss -tlnp | grep -E ":(33000|33001|38000)"
 ```
 
 ### 查看日志
@@ -183,13 +183,13 @@ tail -f /tmp/backend.log /tmp/frontend.log /tmp/monitor.log
 ./START_ALL_SERVICES.sh
 
 # 2. 打开监控面板
-在浏览器访问: http://localhost:3001
+在浏览器访问: http://localhost:33001
 
 # 3. 查看日志
 tail -f /tmp/backend.log
 
 # 4. 测试功能
-访问主应用: http://localhost:3000
+访问主应用: http://localhost:33000
 
 # 5. 停止服务
 ./STOP_ALL_SERVICES.sh
@@ -220,10 +220,10 @@ tail -100 /tmp/backend.log
 tail -100 /tmp/frontend.log
 
 # 检查端口占用
-ss -tlnp | grep -E ":(3000|3001|8000)"
+ss -tlnp | grep -E ":(33000|33001|38000)"
 
 # 杀死占用进程
-lsof -ti:8000 | xargs kill -9
+lsof -ti:38000 | xargs kill -9
 ```
 
 ### 问题2：TTS不工作
@@ -241,7 +241,7 @@ python3 manage_db.py tasks
 ### 问题3：监控面板打不开
 ```bash
 # 检查3001端口
-ss -tlnp | grep 3001
+ss -tlnp | grep 33001
 
 # 重启监控面板
 pkill -f monitor_web.py
@@ -263,7 +263,14 @@ tail -f /tmp/monitor.log
 
 ---
 
-**立即开始：运行 `./START_ALL_SERVICES.sh` 并访问 http://localhost:3001 查看监控面板！** 🚀
+**立即开始：运行 `./START_ALL_SERVICES.sh` 并访问 http://localhost:33001 查看监控面板！** 🚀
+
+
+
+
+
+
+
 
 
 

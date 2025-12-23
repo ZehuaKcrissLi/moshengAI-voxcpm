@@ -84,14 +84,14 @@ transformers版本兼容性问题
 ┌─────────────────────────────────────────────────────────────┐
 │  用户浏览器                                                  │
 ├─────────────────────────────────────────────────────────────┤
-│  http://localhost:3000 - 主应用 (Next.js)                    │
-│  http://localhost:3001 - 监控面板 (FastAPI + WebSocket)      │
+│  http://localhost:33000 - 主应用 (Next.js)                    │
+│  http://localhost:33001 - 监控面板 (FastAPI + WebSocket)      │
 └──────────────┬──────────────────────────────┬───────────────┘
                │                              │
                ↓                              ↓
 ┌──────────────────────────┐   ┌──────────────────────────────┐
 │  后端API (FastAPI)       │   │  监控系统                    │
-│  Port: 8000              │   │  - 实时状态                  │
+│  Port: 38000              │   │  - 实时状态                  │
 │  - 认证 (/auth)          │   │  - 资源监控                  │
 │  - 积分 (/credits)       │   │  - 日志查看                  │
 │  - TTS  (/tts)           │   │  - WebSocket推送             │
@@ -120,19 +120,19 @@ transformers版本兼容性问题
 ### 端口分配
 | 端口 | 服务 | 状态 |
 |------|------|------|
-| 3000 | 前端应用 | ✅ 正常 |
-| 3001 | 监控面板 | ✅ 正常 |
-| 8000 | 后端API | ✅ 正常 |
+| 33000 | 前端应用 | ✅ 正常 |
+| 33001 | 监控面板 | ✅ 正常 |
+| 38000 | 后端API | ✅ 正常 |
 
 ### SSH端口转发
 ```bash
-ssh -L 3000:localhost:3000 -L 3001:localhost:3001 -L 8000:localhost:8000 kcriss@10.212.227.125
+ssh -L 33000:localhost:33000 -L 33001:localhost:33001 -L 38000:localhost:38000 kcriss@10.212.227.125
 ```
 
 然后访问：
-- 主应用：`http://localhost:3000`
-- 监控面板：`http://localhost:3001`
-- API文档：`http://localhost:8000/docs`
+- 主应用：`http://localhost:33000`
+- 监控面板：`http://localhost:33001`
+- API文档：`http://localhost:38000/docs`
 
 ---
 
@@ -194,7 +194,7 @@ python3 manage_db.py stats
 
 ### 监控系统测试
 ```bash
-curl http://localhost:3001
+curl http://localhost:33001
 ```
 ✅ 结果：监控面板HTML正常返回
 
@@ -256,7 +256,7 @@ documents/
 ## 🚀 下一步建议
 
 ### 立即可做
-1. ✅ 访问监控面板：`http://localhost:3001`
+1. ✅ 访问监控面板：`http://localhost:33001`
 2. ✅ 测试注册登录流程
 3. ✅ 完善UI/UX细节
 
@@ -301,6 +301,13 @@ documents/
 **🎯 结论：MoshengAI MVP已基本就绪，可以开始用户测试和市场验证！** 🚀
 
 **唯一待解决**：TTS引擎兼容性（不影响系统其他功能使用）
+
+
+
+
+
+
+
 
 
 

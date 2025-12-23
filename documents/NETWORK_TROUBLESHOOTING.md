@@ -1,8 +1,8 @@
 # 🚨 MoshengAI 无法访问 - 解决方案
 
 ## 当前状态
-✅ 后端服务运行正常 (0.0.0.0:8000)
-✅ 前端服务运行正常 (0.0.0.0:3000)  
+✅ 后端服务运行正常 (0.0.0.0:38000)
+✅ 前端服务运行正常 (0.0.0.0:33000)  
 ✅ 从服务器内部可以访问
 ❌ 从外部浏览器无法访问
 
@@ -10,10 +10,10 @@
 
 ## 问题原因
 
-**你的电脑无法直接访问服务器的 10.212.227.125:3000**
+**你的电脑无法直接访问服务器的 10.212.227.125:33000**
 
 可能原因：
-1. 🔥 防火墙阻止端口 3000 和 8000
+1. 🔥 防火墙阻止端口 33000 和 38000
 2. 🌐 网络隔离（不在同一子网）
 3. 🔒 安全组/ACL 规则限制
 
@@ -27,12 +27,12 @@
 
 ```bash
 # Windows PowerShell / Mac Terminal / Linux Terminal
-ssh -L 3000:localhost:3000 -L 8000:localhost:8000 kcriss@10.212.227.125
+ssh -L 33000:localhost:33000 -L 38000:localhost:38000 kcriss@10.212.227.125
 ```
 
 **然后**在浏览器访问：
 ```
-http://localhost:3000
+http://localhost:33000
 ```
 
 **原理**：通过SSH隧道把本地的3000端口转发到服务器的3000端口
@@ -53,18 +53,18 @@ http://localhost:3000
 sudo ufw status
 
 # 开放端口
-sudo ufw allow 3000/tcp
-sudo ufw allow 8000/tcp
+sudo ufw allow 33000/tcp
+sudo ufw allow 38000/tcp
 
 # 或者如果使用 firewalld
-sudo firewall-cmd --permanent --add-port=3000/tcp
-sudo firewall-cmd --permanent --add-port=8000/tcp
+sudo firewall-cmd --permanent --add-port=33000/tcp
+sudo firewall-cmd --permanent --add-port=38000/tcp
 sudo firewall-cmd --reload
 ```
 
 **然后**直接访问：
 ```
-http://10.212.227.125:3000
+http://10.212.227.125:33000
 ```
 
 ---
@@ -90,7 +90,7 @@ server {
     server_name 10.212.227.125;  # 或你的域名
 
     location / {
-        proxy_pass http://localhost:3000;
+        proxy_pass http://localhost:33000;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
@@ -99,7 +99,7 @@ server {
     }
 
     location /api/ {
-        proxy_pass http://localhost:8000/;
+        proxy_pass http://localhost:38000/;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -153,7 +153,7 @@ credentials-file: /home/kcriss/.cloudflared/<tunnel-id>.json
 
 ingress:
   - hostname: moshengai.你的域名.com
-    service: http://localhost:3000
+    service: http://localhost:33000
   - service: http_status:404
 ```
 
@@ -180,11 +180,11 @@ ping 10.212.227.125
 
 **测试端口是否开放**
 ```bash
-telnet 10.212.227.125 3000
+telnet 10.212.227.125 33000
 # 或
-nc -zv 10.212.227.125 3000
+nc -zv 10.212.227.125 33000
 # 或在 Windows PowerShell:
-Test-NetConnection -ComputerName 10.212.227.125 -Port 3000
+Test-NetConnection -ComputerName 10.212.227.125 -Port 33000
 ```
 
 **检查路由**
@@ -203,22 +203,22 @@ tracert 10.212.227.125
 1. 打开 PowerShell 或 CMD
 2. 运行：
 ```powershell
-ssh -L 3000:localhost:3000 -L 8000:localhost:8000 kcriss@10.212.227.125
+ssh -L 33000:localhost:33000 -L 38000:localhost:38000 kcriss@10.212.227.125
 ```
 3. 输入密码登录
 4. **保持这个窗口开着**
-5. 打开浏览器访问：`http://localhost:3000`
+5. 打开浏览器访问：`http://localhost:33000`
 
 ### Mac/Linux 用户：
 
 1. 打开 Terminal
 2. 运行：
 ```bash
-ssh -L 3000:localhost:3000 -L 8000:localhost:8000 kcriss@10.212.227.125
+ssh -L 33000:localhost:33000 -L 38000:localhost:38000 kcriss@10.212.227.125
 ```
 3. 输入密码登录
 4. **保持这个终端开着**
-5. 打开浏览器访问：`http://localhost:3000`
+5. 打开浏览器访问：`http://localhost:33000`
 
 ---
 
@@ -232,21 +232,21 @@ ssh -L 3000:localhost:3000 -L 8000:localhost:8000 kcriss@10.212.227.125
      |
      ↓
 服务器 10.212.227.125
-  ├─ 3000: Next.js (监听 0.0.0.0)
-  └─ 8000: FastAPI (监听 0.0.0.0)
+  ├─ 33000: Next.js (监听 0.0.0.0)
+  └─ 38000: FastAPI (监听 0.0.0.0)
 ```
 
 ### SSH隧道方案：
 ```
 你的电脑 (浏览器)
      ↓
-localhost:3000 (本地)
+localhost:33000 (本地)
      |
      | ✅ SSH隧道 (加密)
      |
      ↓
 服务器 10.212.227.125
-  └─ localhost:3000 (服务器本地)
+  └─ localhost:33000 (服务器本地)
 ```
 
 ---
@@ -265,7 +265,7 @@ localhost:3000 (本地)
 
 1. 你的操作系统 (Windows/Mac/Linux)
 2. 能否 ping 通服务器：`ping 10.212.227.125`
-3. telnet 测试结果：`telnet 10.212.227.125 3000`
+3. telnet 测试结果：`telnet 10.212.227.125 33000`
 4. 你和服务器是否在同一网络/VPN
 
 ---

@@ -9,14 +9,14 @@
 cd /scratch/kcriss/MoshengAI
 
 # 检查后端服务
-curl http://localhost:8000/health
+curl http://localhost:38000/health
 # 应该返回: {"status":"ok"}
 
 # 检查前端服务
-curl -s http://localhost:3000 | grep -q "Mosheng" && echo "✅ 前端运行中" || echo "❌ 前端未运行"
+curl -s http://localhost:33000 | grep -q "Mosheng" && echo "✅ 前端运行中" || echo "❌ 前端未运行"
 
 # 检查音色库
-curl -s http://localhost:8000/voices/ | python3 -c "import sys,json; print(f'✅ {len(json.load(sys.stdin))} 个音色可用')"
+curl -s http://localhost:38000/voices/ | python3 -c "import sys,json; print(f'✅ {len(json.load(sys.stdin))} 个音色可用')"
 ```
 
 ### 步骤2：前端完整测试（推荐）
@@ -24,10 +24,10 @@ curl -s http://localhost:8000/voices/ | python3 -c "import sys,json; print(f'✅
 #### 2.1 访问前端界面
 ```bash
 # 如果在服务器上，使用SSH端口转发
-ssh -L 3000:localhost:3000 -L 8000:localhost:8000 kcriss@10.212.227.125
+ssh -L 33000:localhost:33000 -L 38000:localhost:38000 kcriss@10.212.227.125
 
 # 然后在本地浏览器访问
-http://localhost:3000
+http://localhost:33000
 ```
 
 #### 2.2 注册新账号
@@ -63,7 +63,7 @@ cat > /tmp/test_api.sh << 'EOF'
 #!/bin/bash
 set -e
 
-API_URL="http://localhost:8000"
+API_URL="http://localhost:38000"
 EMAIL="test_$(date +%s)@example.com"
 PASSWORD="testpass123"
 
@@ -203,12 +203,12 @@ EOF
 ### 问题1：后端未运行
 ```bash
 # 检查端口
-ss -tlnp | grep :8000
+ss -tlnp | grep :38000
 
 # 如果没有，启动后端
 cd /scratch/kcriss/MoshengAI
 source .venv/bin/activate
-python -m uvicorn backend.app.main:app --host 0.0.0.0 --port 8000 &
+python -m uvicorn backend.app.main:app --host 0.0.0.0 --port 38000 &
 
 # 查看日志
 tail -f /tmp/backend.log
@@ -217,7 +217,7 @@ tail -f /tmp/backend.log
 ### 问题2：前端未运行
 ```bash
 # 检查端口
-ss -tlnp | grep :3000
+ss -tlnp | grep :33000
 
 # 如果没有，启动前端
 cd /scratch/kcriss/MoshengAI/frontend
@@ -246,7 +246,7 @@ UPDATE users SET is_admin=1 WHERE email='mvp@mosheng.ai';
 
 # 然后调用充值API
 TOKEN="你的管理员token"
-curl -X POST http://localhost:8000/credits/add \
+curl -X POST http://localhost:38000/credits/add \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"user_id": "目标用户ID", "amount": 1000, "reason": "测试充值"}'
@@ -305,7 +305,7 @@ tail -100 /tmp/backend.log | grep -A 10 "TTS"
 
 ### 方案B：完整用户流程（10分钟）
 1. 启动SSH端口转发
-2. 浏览器访问 `http://localhost:3000`
+2. 浏览器访问 `http://localhost:33000`
 3. 完整走一遍：注册→登录→选音色→生成→登出→登录
 4. 验证积分扣除和任务记录
 
@@ -313,7 +313,7 @@ tail -100 /tmp/backend.log | grep -A 10 "TTS"
 ```bash
 # 创建100个用户并发注册
 for i in {1..100}; do
-  curl -s -X POST http://localhost:8000/auth/register \
+  curl -s -X POST http://localhost:38000/auth/register \
     -H "Content-Type: application/json" \
     -d "{\"email\": \"user${i}@test.com\", \"password\": \"test1234\"}" &
 done

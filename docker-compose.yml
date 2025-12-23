@@ -6,7 +6,7 @@ services:
       context: .
       dockerfile: Dockerfile.backend
     ports:
-      - "8000:8000"
+      - "38000:38000"
     volumes:
       - ./storage:/app/storage
       - ./prompt_voice:/app/prompt_voice
@@ -27,14 +27,16 @@ services:
       context: .
       dockerfile: Dockerfile.frontend
     ports:
-      - "3000:3000"
+      - "33000:33000"
     depends_on:
       - backend
     environment:
-      - NEXT_PUBLIC_API_URL=http://backend:8000
+      - NEXT_PUBLIC_API_URL=http://backend:38000
 
   db:
     image: postgres:15-alpine
+    ports:
+      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     environment:
@@ -47,7 +49,7 @@ services:
     command: tunnel --no-autoupdate run --token ${TUNNEL_TOKEN}
     restart: always
     # Network mode host or link to services depending on tunnel config
-    # Usually you config tunnel to point to http://frontend:3000
+    # Usually you config tunnel to point to http://frontend:33000
 
 volumes:
   postgres_data:

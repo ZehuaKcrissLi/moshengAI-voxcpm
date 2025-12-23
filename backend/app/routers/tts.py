@@ -1,5 +1,3 @@
-import uuid
-import asyncio
 import os
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, Field
@@ -10,8 +8,8 @@ from backend.app.core.config import settings
 from backend.app.core.deps import get_current_active_user
 from backend.app.db.database import get_db
 from backend.app.db.models import User
-from backend.app.db.crud_task import create_task, get_task, update_task_status
-from backend.app.db.crud_user import check_and_deduct_credits
+from backend.app.db.crud_task import create_task, get_task, get_user_tasks
+from backend.app.db.crud_credits import apply_credit_transaction
 from backend.app.schemas.task import TaskStatusResponse
 
 router = APIRouter()
@@ -25,6 +23,18 @@ class TaskResponse(BaseModel):
     status: str
     cost: int
     output_url: Optional[str] = None
+
+
+class TaskHistoryItem(BaseModel):
+    task_id: str
+    status: str
+    cost: int
+    voice_id: str
+    text_excerpt: str
+    output_url: Optional[str] = None
+    error: Optional[str] = None
+    created_at: str
+    completed_at: Optional[str] = None
 
 @router.post("/generate", response_model=TaskResponse)
 async def generate_audio(
@@ -46,54 +56,41 @@ async def generate_audio(
     if cost < settings.MIN_CREDITS_REQUIRED:
         cost = settings.MIN_CREDITS_REQUIRED
     
-    # Check and deduct credits
-    success = await check_and_deduct_credits(db, current_user.id, cost)
-    if not success:
-        raise HTTPException(
-            status_code=402,
-            detail=f"Insufficient credits. Required: {cost}, Available: {current_user.credits_balance}"
-        )
-    
-    # Create task in database  
+    # Create task (no commit yet; commit together with credit ledger update)
     task = await create_task(
         db,
         user_id=current_user.id,
         text=req.text,
         voice_path=full_voice_path,
-        cost=cost
+        cost=cost,
+        commit=False
     )
     
     print(f"🎵 [TTS Router] Task created in DB: {task.id}")
     
-    # 同步执行TTS，简化为请求内完成（避免线程/队列问题）
-    print(f"   Running TTS synchronously...")
-    output_filename = f"{task.id}.wav"
-    output_path = os.path.join(settings.GENERATED_AUDIO_DIR, output_filename)
-
-    try:
-        print(f"🚀 [Router] Starting inference in executor...")
-        print(f"   Model initialized: {tts_engine.model is not None}")
-        print(f"   Executor: {tts_engine.executor}")
-        # 执行推理
-        result = await asyncio.get_running_loop().run_in_executor(
-            tts_engine.executor,
-            tts_engine._run_inference,
-            req.text,
-            full_voice_path,
-            output_path
+    # Deduct credits and write ledger entry (no commit yet)
+    charge_reason = f"TTS charge: {len(req.text)} chars"
+    result = await apply_credit_transaction(
+        db=db,
+        user_id=current_user.id,
+        amount=-cost,
+        kind="TTS_CHARGE",
+        reason=charge_reason,
+        related_task_id=task.id,
+    )
+    if result is None:
+        raise HTTPException(
+            status_code=402,
+            detail=f"Insufficient credits. Required: {cost}"
         )
-        print(f"✅ [Router] Inference completed: {result}")
-        result_url = f"/static/generated/{output_filename}"
-        await update_task_status(db, task.id, "COMPLETED", output_url=result_url)
-        print(f"✅ Task {task.id} completed, URL: {result_url}")
-        return TaskResponse(task_id=task.id, status="completed", cost=cost, output_url=result_url)
-    except Exception as e:
-        error_msg = str(e) if e else "Unknown error"
-        print(f"❌ Task {task.id} failed: {error_msg}")
-        import traceback
-        traceback.print_exc()
-        await update_task_status(db, task.id, "FAILED", error_message=error_msg)
-        raise HTTPException(status_code=500, detail=error_msg)
+
+    await db.commit()
+
+    # v0.1: 入队后立即返回 task_id，推理由后台 worker 处理
+    if tts_engine.queue is None:
+        raise HTTPException(status_code=503, detail="TTS engine not initialized")
+    await tts_engine.submit_task(task.id, req.text, full_voice_path)
+    return TaskResponse(task_id=task.id, status="queued", cost=cost)
 
 @router.get("/status/{task_id}", response_model=TaskStatusResponse)
 async def get_task_status_endpoint(
@@ -119,4 +116,42 @@ async def get_task_status_endpoint(
         output_url=task.output_url,
         error=task.error_message
     )
+
+
+@router.get("/history", response_model=list[TaskHistoryItem])
+async def list_my_tasks(
+    limit: int = 50,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    List current user's TTS task history (most recent first).
+
+    Parameters:
+    - limit: max number of tasks to return (default 50, max 200)
+    """
+    if limit <= 0:
+        raise HTTPException(status_code=400, detail="limit must be positive")
+    if limit > 200:
+        raise HTTPException(status_code=400, detail="limit too large")
+
+    tasks = await get_user_tasks(db, current_user.id, limit=limit)
+    items: list[TaskHistoryItem] = []
+    for t in tasks:
+        voice_id = os.path.relpath(t.voice_path, settings.VOICE_ASSETS_DIR) if t.voice_path else ""
+        text_excerpt = (t.text[:120] + "...") if t.text and len(t.text) > 120 else (t.text or "")
+        items.append(
+            TaskHistoryItem(
+                task_id=t.id,
+                status=t.status.lower(),
+                cost=t.cost,
+                voice_id=voice_id,
+                text_excerpt=text_excerpt,
+                output_url=t.output_url,
+                error=t.error_message,
+                created_at=t.created_at.isoformat() if t.created_at else "",
+                completed_at=t.completed_at.isoformat() if t.completed_at else None,
+            )
+        )
+    return items
 

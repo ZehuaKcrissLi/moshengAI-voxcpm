@@ -5,6 +5,7 @@ import { VoiceDrawer } from "@/components/VoiceDrawer";
 import { ChatInterface } from "@/components/ChatInterface";
 import { PricingModal } from "@/components/PricingModal";
 import { LoginModal } from "@/components/LoginModal";
+import { FeedbackModal } from "@/components/FeedbackModal";
 import { Sidebar as SidebarIcon, Plus, Settings, CreditCard, LogOut, User, Trash2, MessageSquare } from "lucide-react";
 import { useAppStore } from '@/store/useAppStore';
 import { cn } from "@/lib/utils";
@@ -24,6 +25,7 @@ export default function Home() {
   
   const [isPricingOpen, setIsPricingOpen] = useState(false);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
+  const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isVoiceDrawerOpen, setIsVoiceDrawerOpen] = useState(false);
 
@@ -164,6 +166,13 @@ export default function Home() {
                     <Settings className="w-3.5 h-3.5" />
                     Settings
                  </button>
+                 <button
+                   onClick={() => setIsFeedbackOpen(true)}
+                   className="flex items-center gap-2 text-xs text-gray-400 hover:text-white p-2 hover:bg-white/5 rounded-lg transition-colors"
+                 >
+                   <Settings className="w-3.5 h-3.5" />
+                   Feedback
+                 </button>
                  <button 
                     onClick={handleLogout}
                     className="flex items-center gap-2 text-xs text-gray-400 hover:text-red-400 p-2 hover:bg-red-500/10 rounded-lg transition-colors"
@@ -224,6 +233,7 @@ export default function Home() {
       {/* Modals */}
       <PricingModal isOpen={isPricingOpen} onClose={() => setIsPricingOpen(false)} />
       <LoginModal isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)} />
+      <FeedbackModal isOpen={isFeedbackOpen} onClose={() => setIsFeedbackOpen(false)} />
       </main>
   );
 }

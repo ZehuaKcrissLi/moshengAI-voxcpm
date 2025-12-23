@@ -135,13 +135,13 @@ SUCCESS: IndexTTS2 imported
 
 ### 2. ✅ **后端服务启动测试**
 ```bash
-$ curl http://localhost:8000/health
+$ curl http://localhost:38000/health
 {"status":"ok"}
 ```
 
 ### 3. ✅ **音色列表API测试**
 ```bash
-$ curl http://localhost:8000/voices/ | head -5
+$ curl http://localhost:38000/voices/ | head -5
 [
     {"id": "female/女声1大气磁性.wav", "name": "女声1大气磁性", ...},
     {"id": "female/女声1磁性大气.wav", "name": "女声1磁性大气", ...},
@@ -151,13 +151,13 @@ $ curl http://localhost:8000/voices/ | head -5
 
 ### 4. ✅ **TTS生成测试**
 ```bash
-$ curl -X POST http://localhost:8000/tts/generate \
+$ curl -X POST http://localhost:38000/tts/generate \
   -H "Content-Type: application/json" \
   -d '{"text":"你好世界，这是一个测试", "voice_id":"female/女声1大气磁性.wav"}'
 
 {"task_id":"0140211a-cede-4803-9c67-635da144a9cc","status":"queued"}
 
-$ curl http://localhost:8000/tts/status/0140211a-cede-4803-9c67-635da144a9cc
+$ curl http://localhost:38000/tts/status/0140211a-cede-4803-9c67-635da144a9cc
 {"task_id":"...","status":"completed","output_url":"/static/generated/...wav","error":null}
 ```
 
@@ -172,7 +172,7 @@ RIFF (little-endian) data, WAVE audio, Microsoft PCM, 16 bit, mono 22050 Hz
 
 ### 6. ✅ **前端服务测试**
 ```bash
-$ curl -s http://localhost:3000 | grep -q "Next.js"
+$ curl -s http://localhost:33000 | grep -q "Next.js"
 # 前端正常运行
 ```
 
@@ -182,8 +182,8 @@ $ curl -s http://localhost:3000 | grep -q "Next.js"
 
 | 服务 | 地址 | 状态 | 说明 |
 |-----|------|------|------|
-| 后端API | http://localhost:8000 | 🟢 运行中 | FastAPI + IndexTTS2 |
-| 前端WebApp | http://localhost:3000 | 🟢 运行中 | Next.js 16 |
+| 后端API | http://localhost:38000 | 🟢 运行中 | FastAPI + IndexTTS2 |
+| 前端WebApp | http://localhost:33000 | 🟢 运行中 | Next.js 16 |
 | TTS推理引擎 | - | 🟢 正常 | GPU加速，异步队列处理 |
 
 ---

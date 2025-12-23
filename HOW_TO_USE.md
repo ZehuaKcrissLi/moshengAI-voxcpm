@@ -11,23 +11,23 @@ cd /scratch/kcriss/MoshengAI
 等待15-20秒，看到：
 ```
 ✅ 启动完成！
-  主应用: http://localhost:3000
-  后端API: http://localhost:8000/docs
-  监控面板: http://localhost:3001
+  主应用: http://localhost:33000
+  后端API: http://localhost:38000/docs
+  监控面板: http://localhost:33001
 ```
 
 ---
 
 ### 2️⃣ 访问监控面板
 
-**监控面板地址**: `http://localhost:3001`
+**监控面板地址**: `http://localhost:33001`
 
 如果通过SSH：
 ```bash
-ssh -L 3001:localhost:3001 -L 3000:localhost:3000 -L 8000:localhost:8000 kcriss@10.212.227.125
+ssh -L 33001:localhost:33001 -L 33000:localhost:33000 -L 38000:localhost:38000 kcriss@10.212.227.125
 ```
 
-在浏览器打开: `http://localhost:3001`
+在浏览器打开: `http://localhost:33001`
 
 **你将看到**：
 - 🟢/🔴 服务状态指示灯
@@ -40,7 +40,7 @@ ssh -L 3001:localhost:3001 -L 3000:localhost:3000 -L 8000:localhost:8000 kcriss@
 
 ### 3️⃣ 测试主应用
 
-访问 `http://localhost:3000`
+访问 `http://localhost:33000`
 
 **测试流程**：
 1. 点击右上角 "Log in"
@@ -153,12 +153,12 @@ tail -f /tmp/backend.log
 ### 端口被占用
 ```bash
 # 查看占用情况
-ss -tlnp | grep -E ":(3000|3001|8000)"
+ss -tlnp | grep -E ":(33000|33001|38000)"
 
 # 杀死进程
-lsof -ti:8000 | xargs kill -9
-lsof -ti:3000 | xargs kill -9
-lsof -ti:3001 | xargs kill -9
+lsof -ti:38000 | xargs kill -9
+lsof -ti:33000 | xargs kill -9
+lsof -ti:33001 | xargs kill -9
 ```
 
 ### TTS不工作
@@ -175,7 +175,7 @@ lsof -ti:3001 | xargs kill -9
 
 ### Web监控面板（推荐）
 ```
-http://localhost:3001
+http://localhost:33001
 ```
 - 每2秒自动刷新
 - 可视化图表
@@ -190,7 +190,7 @@ python3 monitor_dashboard.py
 
 ### API监控
 ```bash
-curl http://localhost:8000/monitor/health/detailed | python3 -m json.tool
+curl http://localhost:38000/monitor/health/detailed | python3 -m json.tool
 ```
 
 ---
@@ -269,7 +269,14 @@ bash /tmp/test_api.sh
 
 **🎉 恭喜！MoshengAI MVP系统已基本完成！**
 
-**访问监控面板查看实时状态**: http://localhost:3001
+**访问监控面板查看实时状态**: http://localhost:33001
+
+
+
+
+
+
+
 
 
 

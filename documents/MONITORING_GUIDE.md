@@ -83,19 +83,19 @@ python3 monitor_dashboard.py
 #### 健康检查端点
 ```bash
 # 简单健康检查
-curl http://localhost:8000/health
+curl http://localhost:38000/health
 
 # 详细健康检查
-curl http://localhost:8000/monitor/health/detailed | python3 -m json.tool
+curl http://localhost:38000/monitor/health/detailed | python3 -m json.tool
 
 # 系统资源
-curl http://localhost:8000/monitor/system | python3 -m json.tool
+curl http://localhost:38000/monitor/system | python3 -m json.tool
 
 # 服务状态
-curl http://localhost:8000/monitor/services | python3 -m json.tool
+curl http://localhost:38000/monitor/services | python3 -m json.tool
 
 # 数据库统计
-curl http://localhost:8000/monitor/stats/database | python3 -m json.tool
+curl http://localhost:38000/monitor/stats/database | python3 -m json.tool
 ```
 
 #### 返回示例
@@ -137,7 +137,7 @@ tail -100 /tmp/backend.log
 tail -200 /tmp/backend.log | grep -i error
 
 # API查看
-curl http://localhost:8000/monitor/logs/backend?lines=50
+curl http://localhost:38000/monitor/logs/backend?lines=50
 ```
 
 #### 前端日志
@@ -146,7 +146,7 @@ curl http://localhost:8000/monitor/logs/backend?lines=50
 tail -f /tmp/frontend.log
 
 # API查看
-curl http://localhost:8000/monitor/logs/frontend?lines=50
+curl http://localhost:38000/monitor/logs/frontend?lines=50
 ```
 
 #### 常用日志命令
@@ -228,14 +228,14 @@ echo "🔍 MoshengAI 系统快速检查"
 echo "================================"
 
 # 后端
-if pgrep -f "uvicorn.*8000" > /dev/null; then
+if pgrep -f "uvicorn.*38000" > /dev/null; then
     echo "✅ 后端运行中"
 else
     echo "❌ 后端未运行"
 fi
 
 # 前端
-if ss -tlnp 2>/dev/null | grep -q :3000; then
+if ss -tlnp 2>/dev/null | grep -q :33000; then
     echo "✅ 前端运行中"
 else
     echo "❌ 前端未运行"
@@ -374,10 +374,10 @@ ps aux | grep uvicorn
 tail -50 /tmp/backend.log
 
 # 重启后端
-pkill -f "uvicorn.*8000"
+pkill -f "uvicorn.*38000"
 cd /scratch/kcriss/MoshengAI
 source .venv/bin/activate
-nohup python -m uvicorn backend.app.main:app --host 0.0.0.0 --port 8000 > /tmp/backend.log 2>&1 &
+nohup python -m uvicorn backend.app.main:app --host 0.0.0.0 --port 38000 > /tmp/backend.log 2>&1 &
 ```
 
 ### **2. TTS生成失败**
@@ -443,12 +443,19 @@ crontab -e
 | **GPU监控** | `watch -n 1 nvidia-smi` |
 | **系统检查** | `./check_system.sh` |
 | **数据库统计** | `python3 manage_db.py stats` |
-| **健康检查API** | `curl localhost:8000/monitor/health/detailed` |
+| **健康检查API** | `curl localhost:38000/monitor/health/detailed` |
 | **查看进程** | `htop` |
 
 ---
 
 **监控系统已就绪！现在你可以随时掌握系统状态。** 🚀
+
+
+
+
+
+
+
 
 
 

@@ -8,7 +8,7 @@ import time
 import os
 from datetime import datetime
 
-API_URL = "http://localhost:8000"
+API_URL = "http://localhost:38000"
 
 def clear_screen():
     os.system('clear' if os.name != 'nt' else 'cls')
@@ -120,7 +120,7 @@ def display_dashboard():
     except requests.exceptions.ConnectionError:
         clear_screen()
         print("❌ 无法连接到后端服务")
-        print("请确保后端服务在运行：python -m uvicorn backend.app.main:app --host 0.0.0.0 --port 8000")
+        print("请确保后端服务在运行：python -m uvicorn backend.app.main:app --host 0.0.0.0 --port 38000")
     except Exception as e:
         clear_screen()
         print(f"❌ 错误: {e}")
@@ -136,6 +136,12 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+
+
+
+
+
 
 
 

@@ -3,6 +3,8 @@ from pydantic_settings import BaseSettings
 from typing import List
 
 class Settings(BaseSettings):
+    # Runtime environment
+    ENVIRONMENT: str = "development"  # development | production
     PROJECT_NAME: str = "Mosheng AI"
     API_V1_STR: str = "/api/v1"
     
@@ -20,7 +22,9 @@ class Settings(BaseSettings):
     TTS_MODEL_DIR: str = os.path.join(INDEX_TTS_ROOT, "checkpoints")
     
     # Database
-    DATABASE_URL: str = "sqlite+aiosqlite:///./mosheng.db"
+    # Host-run default: Postgres from docker-compose exposed on localhost:5432
+    # Docker-compose overrides this via service environment to use host "db".
+    DATABASE_URL: str = "postgresql+asyncpg://user:password@localhost:5432/mosheng"
     
     # Security
     SECRET_KEY: str = "CHANGE_ME_IN_PRODUCTION"
@@ -28,7 +32,7 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     
     # CORS
-    ALLOWED_ORIGINS: str = "http://localhost:38000,http://10.212.227.125:38000"
+    ALLOWED_ORIGINS: str = "http://localhost:33000,http://10.212.227.125:33000"
     
     # Credits
     TTS_COST_PER_CHAR: int = 1

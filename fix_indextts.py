@@ -134,7 +134,14 @@ if __name__ == '__main__':
     print("✅ 所有修复已应用！")
     print("\n下一步：清理缓存并重启服务")
     print("  find . -name '__pycache__' -type d -delete")
-    print("  pkill -f uvicorn && python -m uvicorn backend.app.main:app --host 0.0.0.0 --port 8000")
+    print("  pkill -f uvicorn && python -m uvicorn backend.app.main:app --host 0.0.0.0 --port 38000")
+
+
+
+
+
+
+
 
 
 

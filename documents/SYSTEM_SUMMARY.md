@@ -30,20 +30,20 @@
 
 | 服务 | 状态 | 监听地址 | 进程ID |
 |-----|------|---------|--------|
-| 后端 FastAPI | 🟢 运行中 | 0.0.0.0:8000 | 1330470 |
-| 前端 Next.js | 🟢 运行中 | 0.0.0.0:3000 | 1384722 |
+| 后端 FastAPI | 🟢 运行中 | 0.0.0.0:38000 | 1330470 |
+| 前端 Next.js | 🟢 运行中 | 0.0.0.0:33000 | 1384722 |
 | TTS引擎 | 🟢 已加载 | - | - |
 | 音色库 | 🟢 137个音色 | - | - |
 
 ### 验证结果
 ```bash
-$ curl http://localhost:8000/health
+$ curl http://localhost:38000/health
 {"status":"ok"}
 
-$ curl -s http://localhost:3000 | grep -q "Mosheng"
+$ curl -s http://localhost:33000 | grep -q "Mosheng"
 ✅ 前端HTML正常返回
 
-$ curl http://localhost:8000/voices/ | python -c "import sys,json;print(len(json.load(sys.stdin)))"
+$ curl http://localhost:38000/voices/ | python -c "import sys,json;print(len(json.load(sys.stdin)))"
 137
 ```
 
@@ -53,26 +53,26 @@ $ curl http://localhost:8000/voices/ | python -c "import sys,json;print(len(json
 
 ### ⚠️ 问题：直接IP访问被阻止
 
-**无法访问**：`http://10.212.227.125:3000` ❌  
+**无法访问**：`http://10.212.227.125:33000` ❌  
 **原因**：防火墙或网络限制
 
 ### ✅ 解决方案：SSH端口转发
 
 **在你的本地电脑上运行**：
 ```bash
-ssh -L 3000:localhost:3000 -L 8000:localhost:8000 kcriss@10.212.227.125
+ssh -L 33000:localhost:33000 -L 38000:localhost:38000 kcriss@10.212.227.125
 ```
 
 **然后访问**：
 ```
-http://localhost:3000
+http://localhost:33000
 ```
 
 **工作原理**：
 ```
-本地浏览器 → localhost:3000 
+本地浏览器 → localhost:33000 
               ↓ [SSH隧道]
-服务器 10.212.227.125 → localhost:3000 → Next.js
+服务器 10.212.227.125 → localhost:33000 → Next.js
 ```
 
 ---
@@ -106,7 +106,7 @@ npm run dev
 ps aux | grep "next dev" | grep -v grep | awk '{print $2}' | xargs kill
 
 # 停止后端
-ps aux | grep "uvicorn.*8000" | grep -v grep | awk '{print $2}' | xargs kill
+ps aux | grep "uvicorn.*38000" | grep -v grep | awk '{print $2}' | xargs kill
 ```
 
 ### 查看日志
@@ -121,14 +121,14 @@ cat /home/kcriss/.cursor/projects/scratch-kcriss/terminals/9.txt
 ### 检查服务状态
 ```bash
 # 端口监听
-ss -tlnp | grep -E ':(3000|8000)'
+ss -tlnp | grep -E ':(33000|38000)'
 
 # 进程状态
-ps aux | grep -E "(next dev|uvicorn.*8000)" | grep -v grep
+ps aux | grep -E "(next dev|uvicorn.*38000)" | grep -v grep
 
 # API测试
-curl http://localhost:8000/health
-curl http://localhost:3000 | head -10
+curl http://localhost:38000/health
+curl http://localhost:33000 | head -10
 ```
 
 ---
@@ -139,12 +139,12 @@ curl http://localhost:3000 | head -10
 
 1. **本地电脑**打开终端执行：
    ```bash
-   ssh -L 3000:localhost:3000 -L 8000:localhost:8000 kcriss@10.212.227.125
+   ssh -L 33000:localhost:33000 -L 38000:localhost:38000 kcriss@10.212.227.125
    ```
 
 2. 保持SSH连接窗口开启
 
-3. 浏览器访问：`http://localhost:3000`
+3. 浏览器访问：`http://localhost:33000`
 
 4. 点击 "Change Voice" 选择音色
 
@@ -156,7 +156,7 @@ curl http://localhost:3000 | head -10
 
 如果开放了防火墙端口，可以直接访问：
 ```
-http://10.212.227.125:3000
+http://10.212.227.125:33000
 ```
 
 ---
@@ -170,7 +170,7 @@ http://10.212.227.125:3000
 │  - Framer Motion 动画                           │
 │  - Zustand 状态管理                             │
 │  - Axios HTTP 客户端                            │
-│  端口: 3000                                      │
+│  端口: 33000                                      │
 └──────────────────┬──────────────────────────────┘
                    │ HTTP REST API
                    ↓
@@ -179,7 +179,7 @@ http://10.212.227.125:3000
 │  - 异步队列处理                                  │
 │  - 任务状态管理                                  │
 │  - 静态文件服务                                  │
-│  端口: 8000                                      │
+│  端口: 38000                                      │
 └──────────────────┬──────────────────────────────┘
                    │
                    ↓
@@ -237,7 +237,7 @@ http://10.212.227.125:3000
 
 ## 📚 相关文档
 
-- 后端API文档：`http://localhost:8000/docs`（FastAPI自动生成）
+- 后端API文档：`http://localhost:38000/docs`（FastAPI自动生成）
 - 代码仓库：`/scratch/kcriss/MoshengAI/`
 - IndexTTS文档：`/scratch/kcriss/MoshengAI/index-tts/README.md`
 
@@ -270,7 +270,7 @@ http://10.212.227.125:3000
 - ✅ 前端界面完整
 
 **推荐访问方式**：SSH端口转发  
-**访问地址**：`http://localhost:3000`（通过SSH隧道）
+**访问地址**：`http://localhost:33000`（通过SSH隧道）
 
 ---
 

@@ -4,9 +4,9 @@
 
 ### 您的情况
 - Mac电脑（开发机器）
-- 运行命令：`ssh -L 3000:localhost:40004 -L 8000:localhost:8000 kcriss@10.212.227.125`
+- 运行命令：`ssh -L 33000:localhost:40004 -L 38000:localhost:38000 kcriss@10.212.227.125`
 - 命令卡住不动
-- 浏览器无法访问 localhost:3000 或 10.212.227.125:40004
+- 浏览器无法访问 localhost:33000 或 10.212.227.125:40004
 
 ---
 
@@ -74,7 +74,7 @@ SSH命令"卡住"通常是在等待您输入密码，但提示可能不明显。
 
 **运行**：
 ```bash
-ssh -v -L 3000:localhost:40004 -L 8000:localhost:8000 kcriss@10.212.227.125
+ssh -v -L 33000:localhost:40004 -L 38000:localhost:38000 kcriss@10.212.227.125
 ```
 
 `-v` 参数会显示详细的连接过程，您会看到：
@@ -104,7 +104,7 @@ ssh -v -L 3000:localhost:40004 -L 8000:localhost:8000 kcriss@10.212.227.125
 **测试**：
 ```bash
 # 重新运行
-ssh -L 3000:localhost:40004 -L 8000:localhost:8000 kcriss@10.212.227.125
+ssh -L 33000:localhost:40004 -L 38000:localhost:38000 kcriss@10.212.227.125
 
 # 等待2-3秒后，直接输入密码并回车
 # 成功后应该看到：
@@ -126,7 +126,7 @@ ping 10.212.227.125
 您提到服务器有公网IP `144.202.3.175`，试试：
 
 ```bash
-ssh -L 3000:localhost:40004 -L 8000:localhost:8000 kcriss@144.202.3.175
+ssh -L 33000:localhost:40004 -L 38000:localhost:38000 kcriss@144.202.3.175
 ```
 
 **解决方案B：连接VPN**
@@ -192,7 +192,7 @@ exit
 
 ```bash
 # 现在加上端口转发
-ssh -L 3000:localhost:40004 -L 8000:localhost:8000 kcriss@10.212.227.125
+ssh -L 33000:localhost:40004 -L 38000:localhost:38000 kcriss@10.212.227.125
 
 # 输入密码
 # 成功后保持这个终端开启
@@ -206,11 +206,11 @@ ssh -L 3000:localhost:40004 -L 8000:localhost:8000 kcriss@10.212.227.125
 
 ```bash
 # 检查端口是否被监听
-lsof -i :3000
+lsof -i :33000
 
 # 应该看到类似：
 # COMMAND   PID   USER   FD   TYPE  DEVICE SIZE/OFF NODE NAME
-# ssh       1234  your   5u   IPv4  0x...      0t0  TCP localhost:3000 (LISTEN)
+# ssh       1234  your   5u   IPv4  0x...      0t0  TCP localhost:33000 (LISTEN)
 ```
 
 ✅ 如果看到SSH进程 → 端口转发成功！
@@ -222,7 +222,7 @@ lsof -i :3000
 
 **打开浏览器**，访问：
 ```
-http://localhost:3000
+http://localhost:33000
 ```
 
 ---
@@ -278,8 +278,8 @@ echo "=== 路由追踪 ==="
 traceroute 10.212.227.125
 
 echo "=== 本地端口占用 ==="
-lsof -i :3000
-lsof -i :8000
+lsof -i :33000
+lsof -i :38000
 ```
 
 ---
@@ -292,11 +292,11 @@ lsof -i :8000
 - [ ] `ssh kcriss@10.212.227.125` 能登录（输入密码）
 - [ ] SSH登录后能看到 `kcriss@sigurd-ubuntu24:~$`
 - [ ] 退出SSH：`exit`
-- [ ] 运行端口转发：`ssh -L 3000:localhost:40004 -L 8000:localhost:8000 kcriss@10.212.227.125`
+- [ ] 运行端口转发：`ssh -L 33000:localhost:40004 -L 38000:localhost:38000 kcriss@10.212.227.125`
 - [ ] 输入密码（看不到字符是正常的）
 - [ ] 看到服务器提示符，保持这个窗口开启
-- [ ] 新开终端：`lsof -i :3000` 能看到SSH进程
-- [ ] 浏览器访问：`http://localhost:3000`
+- [ ] 新开终端：`lsof -i :33000` 能看到SSH进程
+- [ ] 浏览器访问：`http://localhost:33000`
 
 ---
 
